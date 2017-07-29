@@ -108,7 +108,7 @@ class RestEloquentRepository
     private function resolveOrderBy($model, $orderBy)
     {
         if (!is_null($orderBy)) {
-            $orderBy = explode(",", $request->query('orderBy'));
+            $orderBy = explode(",", $orderBy);
             foreach ($orderBy as $i => $o) {
                 if (substr($o, 0, 1) == "<") {
                     $model = $model->orderBy(substr($o, 1), "desc");

@@ -17,15 +17,21 @@ class RestProcessor
     protected $model = null;
     protected $repository = null;
     protected $transformer = null;
-    public function __construct(RestEloquentRepository $repository)
+    protected $manager = null;
+
+    public function __construct(RestEloquentRepository $repository, Manager $manager)
     {
         $this->repository = $repository;
+        $this->manager = $manager;
     }
 
     public function setModel(Model $model)
     {
+        // set model
         $this->model = $model;
+        // set model from repository
         $this->repository->setModel($model);
+        // set transformer
         if (method_exists($this->model, "getTransformer")) {
             $this->transformer = $this->model->getTransformer();
         } else {
@@ -35,45 +41,66 @@ class RestProcessor
 
     public function getItemStandard(Request $request, $id)
     {
-        try {
-            $model = $this->repository->getItem($id);
-        } catch (ModelNotFoundException $e) {
+        // parse request relation
+        $this->parseRelation($request);
+        // return the data via response class
+        try{
+            return $this->getItemStandardResult($this->repository->getItem($id));            
+        }catch(ModelNotFoundException $e){
             abort(404);
         }
-    
-        return $this->getItemResult($model, $request);
     }
     
     public function deleteItemStandard($id, Request $request)
     {
+        // get parameter from request (ex : soft)
         $parameters = $this->getRequestParameters($request);
-        return $this->repository->deleteItem($id, $request);
+        // delete the information
+        return $this->repository->deleteItem($id, $parameters);
     }
     
     public function postItemStandard(Request $request)
     {
+        // get parameter from request
         $parameters = $this->getRequestParameters($request);
-        return $this->getItemResult($this->repository->postItem($parameters), $request);
+        // parse relation
+        $this->parseRelation($request);
+        // return the data via response class
+        return $this->getItemStandardResult($this->repository->postItem($parameters));
     }
 
     public function putItemStandard($id, Request $request)
     {
+        // get parameter from request        
         $parameters = $this->getRequestParameters($request);
-        return $this->getItemResult($this->repository->putItem($id, $parameters), $request);
+        // parse relation
+        $this->parseRelation($request);
+        // return the data via response class 
+        return $this->getItemStandardResult($this->repository->putItem($id, $parameters));
     }
-    private function getItemResult($model, $request)
-    {
-        $resource = new Item($model, $this->transformer);
-        $manager = new Manager();
 
-        $manager->setSerializer(new DataArraySerializer());
-        if (!is_null($request->query("relation"))) {
-              $manager->parseIncludes($request->query("relation"));
-        }
-    
-        $result = $manager->createData($resource)->toArray();
-        
+    private function getItemStandardResult($model){
+        $this->manager->setSerializer(new DataArraySerializer);
+        $resource = new Item($model, $this->transformer);        
+        $result = $this->manager->createData($resource)->toArray();
         return $result;
+    }
+
+    private function getCollectionStandardResult($model, $limit){
+        $this->manager->setSerializer(new DataArraySerializer);
+        //paginate
+        $paginator = $model->paginate($limit);
+        $collection = $paginator->getCollection();
+        $resource = new Collection($collection, $this->transformer);
+        $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));    
+        $result = $this->manager->createData($resource)->toArray();
+        return $result;
+    }
+
+    private function parseRelation($request){
+        if (!is_null($request->query("relation"))) {
+            $this->manager->parseIncludes($request->query("relation"));
+        }
     }
 
     public function getCollectionStandard(Request $request)
@@ -82,26 +109,13 @@ class RestProcessor
         $fields = array_except($request->query(), ['limit', 'relation', 'page', 'orderBy', 'soft']);
         $soft = $request->query('soft', false);
 
-        $model = $this->repository->getCollection($fields, $request->query('orderBy'));
         if ($soft) {
             $model->withTrashed();
         }
-        //paginate
-        $paginator = $model->paginate($limit);
-
-        $collection = $paginator->getCollection();
         
-        $resource = new Collection($collection, $this->transformer);
-        
-        $result = $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));
+        $this->parseRelation($request);
 
-        $manager = new Manager();
-
-        $manager->setSerializer(new DataArraySerializer());
-        if (!is_null($request->query("relation"))) {
-            $manager->parseIncludes($request->query("relation"));
-        }
-        return $manager->createData($result)->toArray();
+        return $this->getCollectionStandardResult($this->repository->getCollection($fields, $request->query('orderBy')), $limit);
     }
 
     private function getRequestParameters(Request $request)
