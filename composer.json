@@ -10,6 +10,11 @@
     "require": {
         "league/fractal": "^0.16.0"
     },
+    "autoload": {
+        "psr-4": {
+            "Ordent\\RamenRest\\": "src/"
+        }
+    },
     "description": "RamenRest is another Rest Library for Laravel, it focused on exposing of each component separately and use it on controller. Rather than just having AIO process.",
     "minimum-stability": "dev"
 }
