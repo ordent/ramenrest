@@ -14,11 +14,6 @@ use ReflectionClass;
 
 trait RestControllerTrait
 {
-    protected $routes = [];
-    protected $model = "\Illuminate\Database\Eloquent\Model";
-    protected $uri = "/";
-    protected $processor = null;
-
     protected function setModel($model){
         if (!$this->model instanceof Model && is_string($this->model)) {
             $class = new ReflectionClass($this->model);
