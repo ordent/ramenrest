@@ -28,11 +28,19 @@ class RestResponse
     {
         $result = null;
         $status = 0;
-        if ($exception->getMessage() != "") {
+        if ($exception instanceof \ErrorException) {
+            $status = 500;            
+            if ($exception->getMessage() != "") {
                 $result = $this->errorException($status, $exception->getMessage());
             } else {
-                $result = $this->errorException($status, "Unknown Exception");
+                $result = $this->errorException($status, "Error Exception");
+            }
         }
+        // if ($exception->getMessage() != "") {
+        //         $result = $this->errorException($status, $exception->getMessage());
+        //     } else {
+        //         $result = $this->errorException($status, "Unknown Exception");
+        // }
         // 404
         if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
             $status = 404;            
