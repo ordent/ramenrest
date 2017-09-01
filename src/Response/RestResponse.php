@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Validation\ValidationException;
-
+use Illuminate\Database\Eloquent\MassAssignmentException;
 class RestResponse
 {
   // success response
@@ -36,12 +36,7 @@ class RestResponse
                 $result = $this->errorException($status, "Error Exception");
             }
         }
-        // if ($exception->getMessage() != "") {
-        //         $result = $this->errorException($status, $exception->getMessage());
-        //     } else {
-        //         $result = $this->errorException($status, "Unknown Exception");
-        // }
-        // 404
+        
         if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
             $status = 404;            
             if ($exception->getMessage() != "") {
@@ -52,7 +47,7 @@ class RestResponse
         }
         // 500
         if ($exception instanceof QueryException) {
-                $status = 500;
+            $status = 500;
             if ($exception->getMessage() != "") {
                 $result = $this->errorException($status, $exception->getMessage());
             } else {
@@ -67,7 +62,26 @@ class RestResponse
                 $result = $this->errorException($status, "You failed the validation test.");
             }
         }
-        return response()->json($result, $status);
+
+        if ($exception instanceof MassAssignmentException) {
+            $status = 422;
+            if ($exception->getMessage() != "") {
+                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all());
+            } else {
+                $result = $this->errorException($status, "Assigment failed, please check if the properties is properly allowed.");
+            }
+        }
+
+        if ($exception instanceof \Exception) {
+            $status = 500;
+            if ($exception->getMessage() != "") {
+                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all());
+            } else {
+                $result = $this->errorException($status, "Assigment failed, please check if the properties is properly allowed.");
+            }
+        }
+        
+        
     }
 
     private function errorException($status = 500, $message = null, $detail = null)
