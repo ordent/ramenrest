@@ -31,6 +31,13 @@ class RestProcessor
         $this->model = $model;
         // set model from repository
         $this->repository->setModel($model);
+        $schema = \Schema::getColumnListing($model->getTable());
+        $forget = [];
+        foreach ($model->getHidden() as $key => $value) {
+          array_push($forget, array_search($value, $schema));
+        }
+        $available = array_except($schema, $forget);
+        $model->setVisible($available);
         // set transformer
         if (method_exists($this->model, "getTransformer")) {
             $this->transformer = $this->model->getTransformer();
@@ -100,6 +107,9 @@ class RestProcessor
     private function parseRelation($request){
         if (!is_null($request->query("relation"))) {
             $this->manager->parseIncludes($request->query("relation"));
+        }
+        if (!is_null($request->query("with"))) {
+            $this->manager->parseIncludes($request->query("with"));
         }
     }
 

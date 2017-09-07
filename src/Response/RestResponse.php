@@ -81,7 +81,7 @@ class RestResponse
             }
         }
         
-        
+        return $result;
     }
 
     private function errorException($status = 500, $message = null, $detail = null)
@@ -96,7 +96,7 @@ class RestResponse
         if (!is_null($detail)) {
             $result->meta->detail = $detail;
         }
-        return $result;
+        return response()->json($result);
     }
 
     // 400 bad request. general request error

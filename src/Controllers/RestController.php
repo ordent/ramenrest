@@ -62,6 +62,7 @@ class RestController extends Controller
 
     public function postItem(Request $request)
     {
+        
         // validate the request first, rules fetched from model get rules method
         try {
             $request = RestRequestFactory::createRequest($this->model, "store");

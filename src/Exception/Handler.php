@@ -45,7 +45,9 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        // dd($exception);
+        if(env('APP_ENV') == "local"){
+            dd($exception);
+        }
         $this->response = new RestResponse();
       
         // Database Error
