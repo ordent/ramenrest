@@ -124,6 +124,7 @@ class RestEloquentRepository
     {
         $string = [];
         foreach ($files as $i => $f) {
+            $string = [];
             if (count($f)>1) {
                 foreach ($f as $j => $x) {
                     array_push($string, asset('/storage/')."/".$x->store('avatar', "public"));
