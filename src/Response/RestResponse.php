@@ -96,7 +96,7 @@ class RestResponse
         if (!is_null($detail)) {
             $result->meta->detail = $detail;
         }
-        return response()->json($result);
+        return response()->json($result, $status);
     }
 
     // 400 bad request. general request error
