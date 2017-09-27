@@ -5,7 +5,7 @@ use Ordent\RamenRest\Requests\RestRequest;
 class RestRequestFactory{
   public static function createRequest(Model $model, $key){
         // $request =  \App::makeWith('Ordent\RamenRest\Requests\RestRequest', ["model"=>$model, "key"=>$key]);
-        $request = app('Ordent\RamenRest\Requests\RestRequest', ["model"=> $model, "key"=>null]);
+        $request = app('Ordent\RamenRest\Requests\RestRequest', ["model"=> $model, "key"=>$key]);
         
         return $request;
     }
