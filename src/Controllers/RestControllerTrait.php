@@ -42,23 +42,27 @@ trait RestControllerTrait
         return response()->successResponse($this->processor->getItemStandard($request, $id));
     }
 
-    public function postItem(Request $request)
+    public function postItem(Request $request, $validate)
     {
         // validate the request first, rules fetched from model get rules method
-        try {
-            $request = RestRequestFactory::createRequest($this->model, "store");
-        } catch (ValidationException $e) {
-            return response()->exceptionResponse($e);
+        if($validate){
+            try {
+                $request = RestRequestFactory::createRequest($this->model, "store");
+            } catch (ValidationException $e) {
+                return response()->exceptionResponse($e);
+            }
         }
         // return newly created item
         return response()->createdResponse($this->processor->postItemStandard($request));
     }
-    public function putItem($id, Request $request)
+    public function putItem($id, Request $request, $validate)
     {
-        try {
-            $request = RestRequestFactory::createRequest($this->model, "update");
-        } catch (ValidationException $e) {
-            return response()->exceptionResponse($e);
+        if($validate){
+            try {
+                $request = RestRequestFactory::createRequest($this->model, "update");
+            } catch (ValidationException $e) {
+                return response()->exceptionResponse($e);
+            }
         }
 
         return response()->successResponse($this->processor->putItemStandard($id, $request));
