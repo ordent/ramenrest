@@ -3,7 +3,8 @@ namespace Ordent\RamenRest\Processor;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-
+use Symfony\Component\Debug\Exception\FatalThrowableError;
+use Ordent\RamenRest\Events\FileHandlerEvent;
 class RestEloquentRepository
 {
     protected $model = null;
@@ -125,12 +126,28 @@ class RestEloquentRepository
         $string = [];
         foreach ($files as $i => $f) {
             $string = [];
-            if (count($f)>1) {
+            if (is_array($f)) {
                 foreach ($f as $j => $x) {
-                    array_push($string, asset('/storage/')."/".$x->store('avatar', "public"));
+                    $x = event(new FileHandlerEvent($x, $i, $input));
+                    if(is_array($x) && count($x) == 1){
+                        $x = $x[0];
+                    }
+                    try{
+                        array_push($string, asset('/storage/')."/".$x->store('images/'.$i, "public"));
+                    }catch(FatalThrowableError $e){
+                        abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
+                    }
                 }
             } else {
-                array_push($string, asset('/storage/')."/".$f->store('avatar', "public"));
+                $f = event(new FileHandlerEvent($f, $i, $input));
+                if(is_array($f) && count($f) == 1){
+                    $f = $f[0];
+                }
+                try{
+                    array_push($string, asset('/storage/')."/".$f->store('images/'.$i, "public"));
+                }catch(FatalThrowableError $e){
+                    abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
+                }
             }
             if (count($string)>1) {
                 $input[$i] = $string;

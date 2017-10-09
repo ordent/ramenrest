@@ -25,6 +25,8 @@ class RamenRestProvider extends ServiceProvider
             \Illuminate\Contracts\Debug\ExceptionHandler::class,
             \Ordent\RamenRest\Exception\Handler::class
         );
+        
+        \Event::listen('Ordent\RamenRest\Events\FileHandlerEvent', 'Ordent\RamenRest\Listeners\FileHandlerListener@handle');
     }
 
     /**
