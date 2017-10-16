@@ -128,9 +128,11 @@ class RestEloquentRepository
             $string = [];
             if (is_array($f)) {
                 foreach ($f as $j => $x) {
-                    $x = event(new FileHandlerEvent($x, $i, $input));
-                    if(is_array($x) && count($x) == 1){
-                        $x = $x[0];
+                    if(!is_string($x)){
+                        $x = event(new FileHandlerEvent($x, $i, $input));
+                        if(is_array($x) && count($x) == 1){
+                            $x = $x[0];
+                        }
                     }
                     try{
                         if(is_string($x)){
@@ -143,9 +145,11 @@ class RestEloquentRepository
                     }
                 }
             } else {
-                $f = event(new FileHandlerEvent($f, $i, $input));
-                if(is_array($f) && count($f) == 1){
-                    $f = $f[0];
+                if(!is_string($f)){
+                    $f = event(new FileHandlerEvent($f, $i, $input));
+                    if(is_array($f) && count($f) == 1){
+                        $f = $f[0];
+                    }
                 }
                 try{
                     if(is_string($x)){
