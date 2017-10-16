@@ -133,7 +133,11 @@ class RestEloquentRepository
                         $x = $x[0];
                     }
                     try{
-                        array_push($string, asset('/storage/')."/".$x->store('images/'.$i, "public"));
+                        if(is_string($x)){
+                            array_push($string, $x);
+                        }else{
+                            array_push($string, asset('/storage/')."/".$x->store('images/'.$i, "public"));                        
+                        }
                     }catch(FatalThrowableError $e){
                         abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
                     }
@@ -144,7 +148,11 @@ class RestEloquentRepository
                     $f = $f[0];
                 }
                 try{
-                    array_push($string, asset('/storage/')."/".$f->store('images/'.$i, "public"));
+                    if(is_string($x)){
+                        array_push($string, $x);                        
+                    }else{
+                        array_push($string, asset('/storage/')."/".$f->store('images/'.$i, "public"));                    
+                    }
                 }catch(FatalThrowableError $e){
                     abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
                 }
