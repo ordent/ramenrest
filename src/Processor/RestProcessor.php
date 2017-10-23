@@ -116,7 +116,9 @@ class RestProcessor
     public function getCollectionStandard(Request $request)
     {
         $limit = $request->query('limit', 25);
-        $fields = array_except($request->query(), ['limit', 'relation', 'page', 'orderBy', 'soft']);
+        
+        $fields = array_except($request->query(), config('ramen.reserved_parameter'));
+        dd($fields);
         $soft = $request->query('soft', false);
 
         if ($soft) {

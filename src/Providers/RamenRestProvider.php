@@ -25,8 +25,14 @@ class RamenRestProvider extends ServiceProvider
             \Illuminate\Contracts\Debug\ExceptionHandler::class,
             \Ordent\RamenRest\Exception\Handler::class
         );
+
+        $this->publishes([
+            __DIR__.'/../config/ramen.php' => config_path('ramen.php'),
+        ]);
+
         
-        \Event::listen('Ordent\RamenRest\Events\FileHandlerEvent', 'Ordent\RamenRest\Listeners\FileHandlerListener@handle');
+        
+        // \Event::listen('Ordent\RamenRest\Events\FileHandlerEvent', 'Ordent\RamenRest\Listeners\FileHandlerListener@handle');
     }
 
     /**
@@ -36,5 +42,8 @@ class RamenRestProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/ramen.php', 'ramen'
+        );
     }
 }
