@@ -129,9 +129,12 @@ class RestEloquentRepository
             if (is_array($f)) {
                 foreach ($f as $j => $x) {
                     if(!is_string($x)){
+                        $temp = $x;
                         $x = event(new FileHandlerEvent($x, $i, $input));
                         if(is_array($x) && count($x) == 1){
                             $x = $x[0];
+                        }else if(is_array($f) && count($f) == 0){
+                            $x = $temp;
                         }
                     }
                     try{
@@ -146,14 +149,17 @@ class RestEloquentRepository
                 }
             } else {
                 if(!is_string($f)){
+                    $temp = $f;
                     $f = event(new FileHandlerEvent($f, $i, $input));
                     if(is_array($f) && count($f) == 1){
                         $f = $f[0];
+                    }else if(is_array($f) && count($f) == 0){
+                        $f = $temp;
                     }
                 }
                 try{
-                    if(is_string($x)){
-                        array_push($string, $x);                        
+                    if(is_string($f)){
+                        array_push($string, $f);                        
                     }else{
                         array_push($string, asset('/storage/')."/".$f->store('images/'.$i, "public"));                    
                     }
