@@ -133,7 +133,7 @@ class RestEloquentRepository
                         $x = event(new FileHandlerEvent($x, $i, $input));
                         if(is_array($x) && count($x) == 1){
                             $x = $x[0];
-                        }else if(is_array($f) && count($f) == 0){
+                        }else if(is_array($x) && count($x) == 0){
                             $x = $temp;
                         }
                     }
