@@ -62,7 +62,6 @@ class RestController extends Controller
 
     public function postItem(Request $request, $validate = true)
     {
-        
         // validate the request first, rules fetched from model get rules method
         if($validate){
             try {

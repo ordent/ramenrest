@@ -24,7 +24,6 @@ class RestEloquentRepository
         $files = $this->getFilesParameter($parameters);
         $input = $this->getNonFilesParameter($parameters);
         $input = $this->resolveUpload($files, $input);
-
         return $this->model->create($input);
     }
 
@@ -167,6 +166,13 @@ class RestEloquentRepository
                     abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
                 }
             }
+            // check if theres any old images that need to be persist
+            $old = $input['_old_'.$i];
+            if(!is_array($old)){
+                $old = [$old];
+            }
+            $string = array_merge($old, $string);
+            // insert images result into input
             if (count($string)>1) {
                 $input[$i] = $string;
             } else {
