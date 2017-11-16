@@ -189,7 +189,7 @@ class RestEloquentRepository
                 }
             }
             // check if theres any old images that need to be persist
-            if(array_key_exists('_old_'.$i)){
+            if(array_key_exists('_old_'.$i, $input)){
                 $old = $input['_old_'.$i];
                 if(!is_array($old)){
                     $old = [$old];
