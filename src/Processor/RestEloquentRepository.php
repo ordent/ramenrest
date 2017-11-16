@@ -88,12 +88,28 @@ class RestEloquentRepository
     {
         
         if (count($fields)>0) {
+            
             foreach ($fields as $i => $l) {
                 if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
                     $model = $model->where($i, substr($l, 0, 1), substr($l, 1));
                 } elseif(substr($l, 0, 1) == "|"){
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereBetween($i, $out);
+                } elseif(substr($l, 0, 1) == "{"){
+                    
+                    $out = explode("}", substr($l, 1));
+                    $path = explode(",", $out[0]);
+                    $key = "";
+                    if(count($path) > 0){
+                        $key = $i;
+                        
+                        foreach ($path as $k => $p) {
+                            $key = $key . "->" . $p; 
+                        }
+                    }else{
+                        $key = $i."->".$path;
+                    }
+                    $model = $model->where($key, $out[1]);
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereNotIn($i, $out);
