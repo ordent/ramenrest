@@ -189,11 +189,13 @@ class RestEloquentRepository
                 }
             }
             // check if theres any old images that need to be persist
-            $old = $input['_old_'.$i];
-            if(!is_array($old)){
-                $old = [$old];
+            if(array_key_exists('_old_'.$i)){
+                $old = $input['_old_'.$i];
+                if(!is_array($old)){
+                    $old = [$old];
+                }
+                $string = array_merge($old, $string);
             }
-            $string = array_merge($old, $string);
             // insert images result into input
             if (count($string)>1) {
                 $input[$i] = $string;
