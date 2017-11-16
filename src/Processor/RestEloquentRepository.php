@@ -55,6 +55,7 @@ class RestEloquentRepository
         $result = $this->model->findOrFail($id);
         
         $result->update($input);
+
         return $result;
     }
 
@@ -90,6 +91,9 @@ class RestEloquentRepository
             foreach ($fields as $i => $l) {
                 if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
                     $model = $model->where($i, substr($l, 0, 1), substr($l, 1));
+                } elseif(substr($l, 0, 1) == "|"){
+                    $out = explode(",", substr($l, 1));
+                    $model = $model->whereBetween($i, $out);
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereNotIn($i, $out);
@@ -123,44 +127,46 @@ class RestEloquentRepository
     private function resolveUpload($files, $input)
     {
         $string = [];
-        foreach ($files as $i => $f) {
+        // process all the file type input
+        foreach ($files as $i => $file) {
             $string = [];
-            if (is_array($f)) {
-                foreach ($f as $j => $x) {
-                    if(!is_string($x)){
-                        $temp = $x;
-                        $x = event(new FileHandlerEvent($x, $i, $input));
-                        if(is_array($x) && count($x) == 1){
-                            $x = $x[0];
-                        }else if(is_array($x) && count($x) == 0){
-                            $x = $temp;
+            if (is_array($file)) {
+                // if the file that got sent are a form
+                foreach ($file as $j => $item) {
+                    if(!is_string($item)){
+                        $temp = $item;
+                        $item = event(new FileHandlerEvent($item, $i, $input));
+                        if(is_array($item) && count($item) == 1){
+                            $item = $item[0];
+                        }else if(is_array($item) && count($item) == 0){
+                            $item = $temp;
                         }
                     }
                     try{
-                        if(is_string($x)){
-                            array_push($string, $x);
+                        if(is_string($item)){
+                            array_push($string, $item);
                         }else{
-                            array_push($string, asset('/storage/')."/".$x->store('images/'.$i, "public"));                        
+                            array_push($string, asset('/storage/')."/".$item->store('images/'.$i, "public"));                        
                         }
                     }catch(FatalThrowableError $e){
                         abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
                     }
                 }
             } else {
-                if(!is_string($f)){
-                    $temp = $f;
-                    $f = event(new FileHandlerEvent($f, $i, $input));
-                    if(is_array($f) && count($f) == 1){
-                        $f = $f[0];
-                    }else if(is_array($f) && count($f) == 0){
-                        $f = $temp;
+                if(!is_string($file)){
+                    $temp = $file;
+                    $file = event(new FileHandlerEvent($file, $i, $input));
+                    if(is_array($file) && count($file) == 1){
+                        $file = $file[0];
+                    }else if(is_array($file) && count($file) == 0){
+                        $file = $temp;
                     }
                 }
                 try{
-                    if(is_string($f)){
-                        array_push($string, $f);                        
+                    if(is_string($file)){
+                        array_push($string, $file);                        
                     }else{
-                        array_push($string, asset('/storage/')."/".$f->store('images/'.$i, "public"));                    
+                        array_push($string, asset('/storage/')."/".$file->store('images/'.$i, "public"));                    
                     }
                 }catch(FatalThrowableError $e){
                     abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
