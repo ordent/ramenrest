@@ -90,19 +90,20 @@ class RestEloquentRepository
         if (count($fields)>0) {
             
             foreach ($fields as $i => $l) {
+                // more or less than
                 if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
                     $model = $model->where($i, substr($l, 0, 1), substr($l, 1));
+                // between range
                 } elseif(substr($l, 0, 1) == "|"){
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereBetween($i, $out);
+                //get json path
                 } elseif(substr($l, 0, 1) == "{"){
-                    
                     $out = explode("}", substr($l, 1));
                     $path = explode(",", $out[0]);
                     $key = "";
                     if(count($path) > 0){
                         $key = $i;
-                        
                         foreach ($path as $k => $p) {
                             $key = $key . "->" . $p; 
                         }
@@ -110,11 +111,22 @@ class RestEloquentRepository
                         $key = $i."->".$path;
                     }
                     $model = $model->where($key, $out[1]);
+                // not in
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereNotIn($i, $out);
+                // like operator
                 } elseif (substr($l, 0, 1) == "$") {
                     $model = $model->where($i, 'like', "%".substr($l, 1)."%");
+                // get relation with path
+                } elseif (substr($l, 0, 1) == ";"){
+                    $path = explode(";", $l);
+                    $value = $path[1];
+                    $path = str_replace(";", "\\", $path[0]);
+                    $temp = app($path)->find($value);
+                    $id = $temp->{$i}->pluck("id")->all();
+                    $model->whereIn($i, $id);
+                // inside
                 } else {
                     $in = explode(",", $l);
                     $model = $model->whereIn($i, $in);
