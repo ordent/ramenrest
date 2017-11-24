@@ -120,11 +120,12 @@ class RestEloquentRepository
                     $model = $model->where($i, 'like', "%".substr($l, 1)."%");
                 // get relation with path
                 } elseif (substr($l, 0, 1) == ";"){
-                    $path = explode(";", $l);
-                    $value = $path[1];
+                    $path = explode(":", $l);
+                    $value = $path[2];
+                    $rel = $path[1];
                     $path = str_replace(";", "\\", $path[0]);
                     $temp = app($path)->find($value);
-                    $id = $temp->{$i}->pluck("id")->all();
+                    $id = $temp->{$rel}->pluck("id")->all();
                     $model->whereIn($i, $id);
                 // inside
                 } else {
