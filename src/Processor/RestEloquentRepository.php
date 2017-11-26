@@ -80,7 +80,7 @@ class RestEloquentRepository
         $model = $this->resolveWhere($model, $attributes);
         
         $model = $this->resolveOrderBy($model, $orderBy);
-        
+
         return $model;
     }
 
@@ -121,12 +121,16 @@ class RestEloquentRepository
                 // get relation with path
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
-                    $value = $path[2];
                     $rel = $path[1];
+                    $value = $path[2];
                     $path = str_replace(";", "\\", $path[0]);
                     $temp = app($path)->find($value);
-                    $id = $temp->{$rel}->pluck("id")->all();
-                    $model->whereIn($i, $id);
+                    
+                    if(!is_null($temp)){
+                        $id = $temp->{$rel}->pluck("id")->all();
+                        $model = $model->whereIn($i, $id);
+                    }
+                    
                 // inside
                 } else {
                     $in = explode(",", $l);
