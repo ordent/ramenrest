@@ -86,9 +86,16 @@ class RestController extends Controller
         return response()->successResponse($this->processor->putItemStandard($id, $request));
     }
 
-    public function deleteItem($id, Request $request)
+    public function deleteItem($id, Request $request, $validate = true)
     {
-        return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
+        if($validate){
+            try {
+                $request = RestRequestFactory::createRequest($this->model, "delete");
+            } catch (ValidationException $e) {
+                return response()->exceptionResponse($e);                
+            }
+        }
+                return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
     }
     
     public function postCollection()
