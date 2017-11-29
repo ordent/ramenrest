@@ -130,7 +130,16 @@ class RestEloquentRepository
                         $id = $temp->{$rel}->pluck("id")->all();
                         $model = $model->whereIn($i, $id);
                     }
-                    
+                } elseif ($i == "scope"){
+                    $path = explode(",", $l);
+                    foreach ($path as $key => $value) {
+                        // dd(method_exists($model, $value), $model->{$value});
+                        try{
+                            $model = $model->{$value}();
+                        }catch(\BadMethodCallException $e){
+
+                        }
+                    }
                 // inside
                 } else {
                     $in = explode(",", $l);
