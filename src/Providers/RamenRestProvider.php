@@ -13,9 +13,7 @@ class RamenRestProvider extends ServiceProvider
      */
     public function boot()
     {
-        if(env("RAMEN_REST_DEFAULT_USER")){
-            $this->loadRoutesFrom(__DIR__.'/../Routes/routes.php');            
-        }
+        $this->loadRoutesFrom(__DIR__.'/../Routes/routes.php');
 
         $responseFactory = $this->app[\Ordent\RamenRest\Response\RestResponse::class];
         foreach (get_class_methods($responseFactory) as $method){
