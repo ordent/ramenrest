@@ -11,7 +11,7 @@ class FilesController extends Controller
         $this->response = $response;
     }
     function uploadFiles(Request $request){
-        $rules = $request->input('rules', 'required|file|size:1048576');
+        $rules = $request->input('rules', 'required|file|max:1048576');
         $failed = $request->input('failed', 'files is either not correct or theres some problem with the connection');
         $location = $request->input('location', 'standard');
         $validator = \Validator::make($request->all(), [
