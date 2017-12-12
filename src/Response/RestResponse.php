@@ -75,9 +75,9 @@ class RestResponse
         if ($exception instanceof \Exception) {
             $status = 500;
             if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all());
+                $result = $this->errorException($status, $exception->getMessage(), $exception);
             } else {
-                $result = $this->errorException($status, "Assigment failed, please check if the properties is properly allowed.");
+                $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
             }
         }
         

@@ -84,6 +84,41 @@ class RestEloquentRepository
         return $model;
     }
 
+    public function getDatatables($attributes){
+        $model = $this->model;
+        $model = $this->resolveDatatable($model, $attributes);
+
+        return $model;
+    }
+
+    private function resolveDatatable($model, $attributes){
+        
+        if(array_key_exists('search', $attributes)){
+            $search = $attributes['search'];
+            $search = $search['value'];
+            foreach($attributes['columns'] as $columns){
+                if($columns['searchable']){
+                    if(is_numeric($search)){
+                        $model = $model->where($columns['name'], $search);
+                    }else{
+                        $model = $model->where($columns['name'], 'like', '%'.$search.'%');
+                    }
+                }
+            }
+        }
+
+        if(array_key_exists('order', $attributes)){
+            $columns = $attributes['columns'];
+            $orders = $attributes['order'];
+            
+            foreach($orders as $order){
+                $model = $model->orderBy($columns[$order[$column]], $order['dir']);
+            }
+        }
+
+        return $model;
+    }
+
     private function resolveWhere($model, $fields)
     {
         

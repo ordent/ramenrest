@@ -104,6 +104,24 @@ class RestProcessor
         return $result;
     }
 
+    private function getDatatablesStandardResult($model, $limit, $offset, $request, $count){
+        $this->manager->setSerializer(new DataArraySerializer);
+        $model->skip($offset-1);
+        //paginate
+        $paginator = $model->paginate($limit);
+        $collection = $paginator->getCollection();
+        $resource = new Collection($collection, $this->transformer);
+        $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));    
+        $result = $this->manager->createData($resource)->toArray();
+
+        $result['draw'] = $request->query('draw', 0);
+        $result['recordsTotal'] = $count;
+        $result['recordsFiltered'] = $result["meta"]["pagination"]["total"];
+
+        // process datatables
+        return $result;
+    }
+
     private function parseRelation($request){
         if (!is_null($request->query("relation"))) {
             $this->manager->parseIncludes($request->query("relation"));
@@ -113,18 +131,57 @@ class RestProcessor
         }
     }
 
+    private function getDataTableQuery($query = [], $except = []){
+        $fields = array_except($query, $except);
+        $temp = [];
+
+        if(!config('ramen.reserved_datatable_detail')){
+            foreach($fields as $i => $field){
+                $check = true;
+                foreach(config('ramen.reserved_datatable_start') as $start){
+                    if($i == $start){
+                        $check = false;
+                    }
+                }
+                
+                if($check){
+                    $temp[$i] = $field;
+                }
+            }
+            
+            $fields = $temp;
+        }
+        
+        return $fields;
+    }
+
     public function getCollectionStandard(Request $request)
     {
-        $limit = $request->query('limit', 25);  
-        $fields = array_except($request->query(), config('ramen.reserved_parameter'));
-        $soft = $request->query('soft', false);
-        if ($soft) {
-            $model->withTrashed();
+        $fields = [];
+        
+        if(array_key_exists('datatables', $request->query())){
+            $fields = $this->getDataTableQuery($request->query(), config('ramen.reserved_datatable'));
+        }else{
+            $fields = array_except($request->query(), config('ramen.reserved_parameter'));            
         }
         
         $this->parseRelation($request);
-
-        return $this->getCollectionStandardResult($this->repository->getCollection($fields, $request->query('orderBy')), $limit);
+        // $soft = $request->query('soft', false);
+        // if ($soft) {
+        //     $model->withTrashed();
+        // }
+        
+        
+        // if doesnt have datatable pointing
+        if(array_key_exists('datatables', $request->query())){
+            $limit = $request->query('length', 25);
+            $offset = $request->query('start', 0);
+            return $this->getDatatablesStandardResult($this->repository->getDatatables($fields), $limit, $offset, $request, $this->model->count());
+        }else{
+            $limit = $request->query('limit', 25);
+            return $this->getCollectionStandardResult($this->repository->getCollection($fields, $request->query('orderBy')), $limit);
+        }
+        
     }
 
     private function getRequestParameters(Request $request)
