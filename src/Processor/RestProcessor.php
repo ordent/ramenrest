@@ -135,22 +135,22 @@ class RestProcessor
         $fields = array_except($query, $except);
         $temp = [];
 
-        if(!config('ramen.reserved_datatable_detail')){
-            foreach($fields as $i => $field){
-                $check = true;
-                foreach(config('ramen.reserved_datatable_start') as $start){
-                    if($i == $start){
-                        $check = false;
-                    }
-                }
+        // if(!config('ramen.reserved_datatable_detail')){
+        //     foreach($fields as $i => $field){
+        //         $check = true;
+        //         foreach(config('ramen.reserved_datatable_start') as $start){
+        //             if($i == $start){
+        //                 $check = false;
+        //             }
+        //         }
                 
-                if($check){
-                    $temp[$i] = $field;
-                }
-            }
+        //         if($check){
+        //             $temp[$i] = $field;
+        //         }
+        //     }
             
-            $fields = $temp;
-        }
+        //     $fields = $temp;
+        // }
         
         return $fields;
     }
@@ -158,14 +158,14 @@ class RestProcessor
     public function getCollectionStandard(Request $request)
     {
         $fields = [];
-        
+        $this->parseRelation($request);
+
         if(array_key_exists('datatables', $request->query())){
             $fields = $this->getDataTableQuery($request->query(), config('ramen.reserved_datatable'));
         }else{
             $fields = array_except($request->query(), config('ramen.reserved_parameter'));            
         }
         
-        $this->parseRelation($request);
         // $soft = $request->query('soft', false);
         // if ($soft) {
         //     $model->withTrashed();

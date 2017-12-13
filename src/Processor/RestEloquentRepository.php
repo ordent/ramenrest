@@ -92,16 +92,24 @@ class RestEloquentRepository
     }
 
     private function resolveDatatable($model, $attributes){
+        // parse column
+        $parsed = array_except($attributes, config('ramen.reserved_datatable_process'));
+        
+        $model = $this->resolveWhere($model, $parsed);
         
         if(array_key_exists('search', $attributes)){
-            $search = $attributes['search'];
-            $search = $search['value'];
-            foreach($attributes['columns'] as $columns){
-                if($columns['searchable']){
-                    if(is_numeric($search)){
-                        $model = $model->where($columns['name'], $search);
-                    }else{
-                        $model = $model->where($columns['name'], 'like', '%'.$search.'%');
+            if(!is_null($attributes['search']['value'])){
+                $search = $attributes['search'];
+                $search = $search['value'];
+                foreach($attributes['columns'] as $columns){
+                    if($columns['searchable'] && !is_null($columns['data'])){
+                        if(!strpos($columns['data'], ".")){
+                            if(is_numeric($search)){
+                                $model = $model->where($columns['data'], $search);
+                            }else{
+                                $model = $model->where($columns['data'], 'like', '%'.$search.'%');
+                            }
+                        }
                     }
                 }
             }
@@ -110,12 +118,14 @@ class RestEloquentRepository
         if(array_key_exists('order', $attributes)){
             $columns = $attributes['columns'];
             $orders = $attributes['order'];
-            
+
             foreach($orders as $order){
-                $model = $model->orderBy($columns[$order[$column]], $order['dir']);
+                if($columns[$order['column']]['data']){
+                    $model = $model->orderBy($columns[$order['column']]['data'], $order['dir']);                
+                }
             }
         }
-
+        
         return $model;
     }
 
