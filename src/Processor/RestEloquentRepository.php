@@ -92,6 +92,7 @@ class RestEloquentRepository
     }
 
     private function resolveDatatable($model, $attributes){
+        
         // parse column
         $parsed = array_except($attributes, config('ramen.reserved_datatable_process'));
         
@@ -102,7 +103,7 @@ class RestEloquentRepository
                 $search = $attributes['search'];
                 $search = $search['value'];
                 foreach($attributes['columns'] as $columns){
-                    if($columns['searchable'] && !is_null($columns['data'])){
+                    if(filter_var($columns['searchable'], FILTER_VALIDATE_BOOLEAN) && !is_null($columns['data'])){
                         if(!strpos($columns['data'], ".")){
                             if(is_numeric($search)){
                                 $model = $model->where($columns['data'], $search);
