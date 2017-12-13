@@ -92,7 +92,6 @@ class RestEloquentRepository
     }
 
     private function resolveDatatable($model, $attributes){
-        
         // parse column
         $parsed = array_except($attributes, config('ramen.reserved_datatable_process'));
         

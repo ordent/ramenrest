@@ -72,10 +72,10 @@ class RestResponse
             }
         }
 
-        if ($exception instanceof \Exception) {
+        if ($exception instanceof \Exception && is_null($result)) {
             $status = 500;
             if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception);
+                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all(), $exception);
             } else {
                 $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
             }
@@ -84,7 +84,7 @@ class RestResponse
         return $result;
     }
 
-    private function errorException($status = 500, $message = null, $detail = null)
+    private function errorException($status = 500, $message = null, $detail = null, $exception = null)
     {
         $result = new \StdClass;
         $result->meta = new \StdClass;
@@ -95,6 +95,9 @@ class RestResponse
         }
         if (!is_null($detail)) {
             $result->meta->detail = $detail;
+        }
+        if (!is_null($exception)) {
+            $result->meta->exception = $exception;
         }
         return response()->json($result, $status);
     }
