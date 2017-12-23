@@ -11,7 +11,7 @@ use League\Fractal\Serializer\DataArraySerializer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Ordent\RamenRest\Processor\RestEloquentRepository;
-
+use Illuminate\Pagination\LengthAwarePaginator;
 class RestProcessor
 {
     protected $model = null;
@@ -106,9 +106,14 @@ class RestProcessor
 
     private function getDatatablesStandardResult($model, $limit, $offset, $request, $count){
         $this->manager->setSerializer(new DataArraySerializer);
-        $model = $model->skip($offset);
+        $model = $model->skip($offset)->take($limit);
         //paginate
-        $paginator = $model->paginate($limit);
+        $page = ($offset / $limit) + 1;
+       
+        $paginator = new LengthAwarePaginator($model->get(), $count, $limit, $page);
+        // dd($paginator);
+        // $paginator = $model->paginate($limit);
+        
         $collection = $paginator->getCollection();
         $resource = new Collection($collection, $this->transformer);
         $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));    
@@ -116,7 +121,7 @@ class RestProcessor
 
         $result['draw'] = $request->query('draw', 0);
         $result['recordsTotal'] = $count;
-        $result['recordsFiltered'] = $result["meta"]["pagination"]["total"];
+        $result['recordsFiltered'] = $result["meta"]["pagination"]["count"];
 
         // process datatables
         return $result;
@@ -176,6 +181,7 @@ class RestProcessor
         if(array_key_exists('datatables', $request->query())){
             $limit = $request->query('length', 25);
             $offset = $request->query('start', 0);
+            
             return $this->getDatatablesStandardResult($this->repository->getDatatables($fields), $limit, $offset, $request, $this->model->count());
         }else{
             $limit = $request->query('limit', 25);
