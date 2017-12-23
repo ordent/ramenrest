@@ -128,21 +128,28 @@ class RestEloquentRepository
         
         return $model;
     }
-
+    /**
+     * resolveWhere 
+     * convert param query into eloquent comparison based on specified format
+     *
+     * @param Model $model
+     * @param Array $fields
+     * @return $model
+     */
     private function resolveWhere($model, $fields)
     {
-        
+        // check if there's any valid query param
         if (count($fields)>0) {
-            
+            // loop each fields
             foreach ($fields as $i => $l) {
-                // more or less than
+                // usecase more or less than (field=>value || field=<value)
                 if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
                     $model = $model->where($i, substr($l, 0, 1), substr($l, 1));
-                // between range
+                // usecase between  range (field=|min,max)
                 } elseif(substr($l, 0, 1) == "|"){
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereBetween($i, $out);
-                //get json path
+                // usecase json path for searching json datatype (field={a,b,c}value ==> field->a->b->c==value)
                 } elseif(substr($l, 0, 1) == "{"){
                     $out = explode("}", substr($l, 1));
                     $path = explode(",", $out[0]);
@@ -156,14 +163,14 @@ class RestEloquentRepository
                         $key = $i."->".$path;
                     }
                     $model = $model->where($key, $out[1]);
-                // not in
+                // usecase not in (field=!value)
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereNotIn($i, $out);
-                // like operator
+                // like operator (field=$value)
                 } elseif (substr($l, 0, 1) == "$") {
                     $model = $model->where($i, 'like', "%".substr($l, 1)."%");
-                // get relation with path
+                // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
                     $rel = $path[1];
@@ -190,7 +197,7 @@ class RestEloquentRepository
                         
                         }
                     }
-                // inside
+                // usecase where and whereIn (field = a,b,c)
                 } else {
                     $in = explode(",", $l);
                     $model = $model->whereIn($i, $in);
@@ -200,7 +207,13 @@ class RestEloquentRepository
         
         return $model;
     }
-
+    /**
+     * resolve orderBy
+     * convert array into model orderBy comparison
+     * @param Eloquent $model
+     * @param Array $orderBy
+     * @return $model
+     */
     private function resolveOrderBy($model, $orderBy)
     {
         if (!is_null($orderBy)) {
