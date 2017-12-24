@@ -93,22 +93,27 @@ class RestEloquentRepository
 
     private function resolveDatatable($model, $attributes){
         // parse column
+        
         $parsed = array_except($attributes, config('ramen.reserved_datatable_process'));
         
         $model = $this->resolveWhere($model, $parsed);
-        
         if(array_key_exists('search', $attributes)){
             if(!is_null($attributes['search']['value'])){
                 $search = $attributes['search'];
                 $search = $search['value'];
-                foreach($attributes['columns'] as $columns){
+                
+                //$search['value'];
+                $count = [];
+                // hacks to clearing where chaining from before
+                $model = $model->where('id', -1);
+                foreach($attributes['columns'] as $index => $columns){
                     if(filter_var($columns['searchable'], FILTER_VALIDATE_BOOLEAN) && !is_null($columns['data'])){
-                        if(!strpos($columns['data'], ".")){
-                            if(is_numeric($search)){
-                                $model = $model->where($columns['data'], $search);
-                            }else{
-                                $model = $model->where($columns['data'], 'like', '%'.$search.'%');
-                            }
+                        if(!strpos($columns['data'], $search)){
+                                if(is_numeric($search)){
+                                    $model = $model->orWhere($columns['data'], $search);
+                                }else{
+                                    $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
+                                }
                         }
                     }
                 }
