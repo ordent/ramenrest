@@ -121,7 +121,7 @@ class RestProcessor
 
         $result['draw'] = $request->query('draw', 0);
         $result['recordsTotal'] = $count;
-        $result['recordsFiltered'] = $result["meta"]["pagination"]["count"];
+        $result['recordsFiltered'] = $model->get()->count();
 
         // process datatables
         return $result;
