@@ -106,7 +106,7 @@ class RestProcessor
 
     private function getDatatablesStandardResult($model, $limit, $offset, $request, $count){
         $this->manager->setSerializer(new DataArraySerializer);
-        $model = $model->skip($offset)->take($limit);
+        // $model = $model->skip($offset)->take($limit);
         //paginate
         $page = ($offset / $limit) + 1;
        
