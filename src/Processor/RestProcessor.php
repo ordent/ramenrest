@@ -109,8 +109,9 @@ class RestProcessor
         // $model = $model->skip($offset)->take($limit);
         //paginate
         $page = ($offset / $limit) + 1;
-       
+        $filtered = $model->get()->count();
         $paginator = new LengthAwarePaginator($model->skip($offset)->take($limit)->get(), $count, $limit, $page);
+        // dd($paginator->getItems());
         // dd($paginator);
         // $paginator = $model->paginate($limit);
         
@@ -121,7 +122,7 @@ class RestProcessor
 
         $result['draw'] = $request->query('draw', 0);
         $result['recordsTotal'] = $count;
-        $result['recordsFiltered'] = $model->get()->count();
+        $result['recordsFiltered'] = $filtered;
         // process datatables
         return $result;
     }
