@@ -110,7 +110,7 @@ class RestProcessor
         //paginate
         $page = ($offset / $limit) + 1;
        
-        $paginator = new LengthAwarePaginator($model->get(), $count, $limit, $page);
+        $paginator = new LengthAwarePaginator($model->skip($offset)->take($limit)->get(), $count, $limit, $page);
         // dd($paginator);
         // $paginator = $model->paginate($limit);
         
