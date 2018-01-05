@@ -98,6 +98,10 @@ class RestProcessor
         //paginate
         $paginator = $model->paginate($limit);
         $collection = $paginator->getCollection();
+
+        $queryParams = array_diff_key($_GET, array_flip(['page']));
+        $paginator->appends($queryParams);
+
         $resource = new Collection($collection, $this->transformer);
         $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));    
         $result = $this->manager->createData($resource)->toArray();

@@ -37,4 +37,14 @@ class RestRequest extends FormRequest
         }
         return [];
     }
+
+    public function messages()
+    {
+        if(!is_null($this->model)){
+            if(method_exists($this->model, "getMessages")){
+                return $this->model->getMessages($this->key);
+            }
+        }
+        return [];
+    }
 }
