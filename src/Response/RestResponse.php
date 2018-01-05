@@ -6,6 +6,7 @@ use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
+use BadMethodCallException;
 class RestResponse
 {
   // success response
@@ -72,6 +73,15 @@ class RestResponse
             }
         }
 
+        if ($exception instanceof BadMethodCallException) {
+            $status = 500;
+            if ($exception->getMessage() != "") {
+                $result = $this->errorException($status, $exception->getMessage());
+            } else {
+                $result = $this->errorException($status, "App can't find the method that you use.");
+            }
+        }
+
         if ($exception instanceof \Exception && is_null($result)) {
             $status = 500;
             if ($exception->getMessage() != "") {
@@ -120,9 +130,9 @@ class RestResponse
     }
     // UNUSED FOR NOW
     // 405 method not allowed error
-    // public function errorMethodNotAllowed($message = 'Method Not Allowed'){
-    //     $this->error($message, 405);
-    // }
+    public function errorMethodNotAllowed($message = 'Method Not Allowed'){
+        $this->error($message, 405);
+    }
     // 422 validation error
     public function errorValidation($errors = null, $message = 'Validation failed'){
         $this->error(422, $message, $errors);
@@ -133,14 +143,15 @@ class RestResponse
     }
     //general error
     public function error($statusCode = 500, $message = null, $detail = null){
-        //create response content in array format
-        $content['status'] = $statusCode;
-        $content['message'] = $message;
-        if ( $detail ){
-            $content['detail'] = $detail;
-        }
-        $data['errors'] = $content;
-        //create json response and throw it
-        response()->json($data, $statusCode)->throwResponse();
+        // //create response content in array format
+        // $content['status'] = $statusCode;
+        // $content['message'] = $message;
+        // if ( $detail ){
+        //     $content['detail'] = $detail;
+        // }
+        // $data['errors'] = $content;
+        // //create json response and throw it
+        // response()->json($data, $statusCode)->throwResponse();
+        $this->errorException($statusCode, $message, $detail);
     }
 }

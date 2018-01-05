@@ -240,61 +240,63 @@ class RestEloquentRepository
         // process all the file type input
         foreach ($files as $i => $file) {
             $string = [];
-            if (is_array($file)) {
-                // if the file that got sent are a form
-                foreach ($file as $j => $item) {
-                    if(!is_string($item)){
-                        $temp = $item;
-                        $item = event(new FileHandlerEvent($item, $i, $input));
-                        if(is_array($item) && count($item) == 1){
-                            $item = $item[0];
-                        }else if(is_array($item) && count($item) == 0){
-                            $item = $temp;
+            if(is_null($file)){
+                if (is_array($file)) {
+                    // if the file that got sent are a form
+                    foreach ($file as $j => $item) {
+                        if(!is_string($item)){
+                            $temp = $item;
+                            $item = event(new FileHandlerEvent($item, $i, $input));
+                            if(is_array($item) && count($item) == 1){
+                                $item = $item[0];
+                            }else if(is_array($item) && count($item) == 0){
+                                $item = $temp;
+                            }
+                        }
+                        try{
+                            if(is_string($item)){
+                                array_push($string, $item);
+                            }else{
+                                array_push($string, asset('/storage/')."/".$item->store('images/'.$i, "public"));                        
+                            }
+                        }catch(FatalThrowableError $e){
+                            abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
+                        }
+                    }
+                } else {
+                    if(!is_string($file)){
+                        $temp = $file;
+                        $file = event(new FileHandlerEvent($file, $i, $input));
+                        if(is_array($file) && count($file) == 1){
+                            $file = $file[0];
+                        }else if(is_array($file) && count($file) == 0){
+                            $file = $temp;
                         }
                     }
                     try{
-                        if(is_string($item)){
-                            array_push($string, $item);
+                        if(is_string($file)){
+                            array_push($string, $file);                        
                         }else{
-                            array_push($string, asset('/storage/')."/".$item->store('images/'.$i, "public"));                        
+                            array_push($string, asset('/storage/')."/".$file->store('images/'.$i, "public"));                    
                         }
                     }catch(FatalThrowableError $e){
                         abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
                     }
                 }
-            } else {
-                if(!is_string($file)){
-                    $temp = $file;
-                    $file = event(new FileHandlerEvent($file, $i, $input));
-                    if(is_array($file) && count($file) == 1){
-                        $file = $file[0];
-                    }else if(is_array($file) && count($file) == 0){
-                        $file = $temp;
+                // check if theres any old images that need to be persist
+                if(array_key_exists('_old_'.$i, $input)){
+                    $old = $input['_old_'.$i];
+                    if(!is_array($old)){
+                        $old = [$old];
                     }
+                    $string = array_merge($old, $string);
                 }
-                try{
-                    if(is_string($file)){
-                        array_push($string, $file);                        
-                    }else{
-                        array_push($string, asset('/storage/')."/".$file->store('images/'.$i, "public"));                    
-                    }
-                }catch(FatalThrowableError $e){
-                    abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
+                // insert images result into input
+                if (count($string)>1) {
+                    $input[$i] = $string;
+                } else {
+                    $input[$i] = $string[0];
                 }
-            }
-            // check if theres any old images that need to be persist
-            if(array_key_exists('_old_'.$i, $input)){
-                $old = $input['_old_'.$i];
-                if(!is_array($old)){
-                    $old = [$old];
-                }
-                $string = array_merge($old, $string);
-            }
-            // insert images result into input
-            if (count($string)>1) {
-                $input[$i] = $string;
-            } else {
-                $input[$i] = $string[0];
             }
         }
         return $input;
