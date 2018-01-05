@@ -152,6 +152,6 @@ class RestResponse
         // $data['errors'] = $content;
         // //create json response and throw it
         // response()->json($data, $statusCode)->throwResponse();
-        $this->errorException($statusCode, $message, $detail);
+        return $this->errorException($statusCode, $message, $detail);
     }
 }
