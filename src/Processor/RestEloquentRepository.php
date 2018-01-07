@@ -157,7 +157,8 @@ class RestEloquentRepository
                 // usecase json path for searching json datatype (field={a,b,c=}value ==> field->a->b->c==value) // {a,b,c=} {a,b,c>} {a,b,c<} {a,b,c|}
                 } elseif(substr($l, 0, 1) == "{"){
                     $out = explode("}", substr($l, 1));
-                    $identifier = array_pop($out[0]);
+                    $identifier = substr($out[0], -1);
+                    $out[0] = substr($out[0], 0, -1);
                     $path = explode(",", $out[0]);
                     $key = "";
                     if(count($path) > 0){
