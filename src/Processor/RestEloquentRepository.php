@@ -154,9 +154,10 @@ class RestEloquentRepository
                 } elseif(substr($l, 0, 1) == "|"){
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereBetween($i, $out);
-                // usecase json path for searching json datatype (field={a,b,c}value ==> field->a->b->c==value)
+                // usecase json path for searching json datatype (field={a,b,c=}value ==> field->a->b->c==value) // {a,b,c=} {a,b,c>} {a,b,c<} {a,b,c|}
                 } elseif(substr($l, 0, 1) == "{"){
                     $out = explode("}", substr($l, 1));
+                    $identifier = array_pop($out[0]);
                     $path = explode(",", $out[0]);
                     $key = "";
                     if(count($path) > 0){
@@ -167,7 +168,14 @@ class RestEloquentRepository
                     }else{
                         $key = $i."->".$path;
                     }
-                    $model = $model->where($key, $out[1]);
+                    if($identifier ==  "="){
+                        $model = $model->where($key, $out[1]);
+                    }else if($identifier ==  ">" || $identifier == "<"){
+                        $model = $model->where($key, $identifier, $out[1]);
+                    }else if($identifier == "|"){
+                        $range = explode(",", $out[1]);
+                        $model = $model->whereBetween($key, $range);
+                    }
                 // usecase not in (field=!value)
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
