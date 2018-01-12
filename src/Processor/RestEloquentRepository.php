@@ -169,6 +169,7 @@ class RestEloquentRepository
                     }else{
                         $key = $i."->".$path;
                     }
+                    
                     if($identifier ==  "="){
                         $model = $model->where($key, $out[1]);
                     }else if($identifier ==  ">" || $identifier == "<"){
@@ -188,14 +189,35 @@ class RestEloquentRepository
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
                     $rel = $path[1];
-                    $value = $path[2];
-                    $path = str_replace(";", "\\", $path[0]);
-                    $temp = app($path)->find($value);
-                    
-                    if(!is_null($temp)){
-                        $id = $temp->{$rel}->pluck("id")->all();
-                        $model = $model->whereIn($i, $id);
+                    $model_path = str_replace(";", "\\", $path[0]);
+                    $id = [];    
+                
+                    if(count($path == 4)){
+                        $prop = $path[2];
+                        $value = $path[3];
+                        $temp = app($model_path)->where($prop, 'like', '%'.$value.'%')->get();
+                        foreach($temp as $t){
+                            array_push($id, $t->{$rel}->{$i});
+                        }
+                    }else{
+                        $value = $path[2];
+                        $temp = app($model_path)->find($value);
+                        if(!is_null($temp)){
+                            $id = $temp->{$rel}->pluck("id")->all();
+                        }
                     }
+
+                    $model = $model->whereIn($i, $id);
+                // find by relation
+                // } else if ($i == "searchByRelation"){
+                //     $path = explode(":", $l);
+                //     $rel = $path[1];
+                //     $value = $path[2];
+                //     $path = str_replace(";", "\\", $path[0]);
+                //     $temp = app($path)->where($rel, $value);
+                //     if(!is_null($temp)){
+
+                //     }
                 } elseif ($i == "scope"){
                     $path = explode(";", $l);
                     foreach ($path as $key => $value) {
