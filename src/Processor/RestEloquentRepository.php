@@ -197,7 +197,13 @@ class RestEloquentRepository
                         $value = $path[3];
                         $temp = app($model_path)->where($prop, 'like', '%'.$value.'%')->get();
                         foreach($temp as $t){
-                            array_push($id, $t->{$rel}->{$i});
+                            if(is_null($t->{$rel}[0])){
+                                array_push($id, $t->{$rel}->{$i});
+                            }else{
+                                foreach ($t->{$rel} as $key => $col) {
+                                    array_push($id, $col->{$i});
+                                }
+                            }   
                         }
                     }else{
                         $value = $path[2];
