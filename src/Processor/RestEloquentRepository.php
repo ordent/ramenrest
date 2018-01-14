@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Ordent\RamenRest\Events\FileHandlerEvent;
+use Illuminate\Http\UploadedFile;
 class RestEloquentRepository
 {
     protected $model = null;
@@ -31,7 +32,12 @@ class RestEloquentRepository
     {
         $files = [];
         if (method_exists($this->model, "getFiles")) {
-            $files = array_only($parameters, $this->model->getFiles());
+            $temporary = array_only($parameters, $this->model->getFiles());
+            foreach($temporary as $index => $temp){
+                if($temp instanceof UploadedFile){
+                    $files[$index] = $temp;
+                }
+            }
         }
         return $files;
     }
@@ -41,6 +47,12 @@ class RestEloquentRepository
         $input = [];
         if (method_exists($this->model, "getFiles")) {
             $input = array_except($parameters, $this->model->getFiles());
+            $temporary = array_only($parameters, $this->model->getFiles());
+            foreach($temporary as $index => $temp){
+                if(!$temp instanceof UploadedFile){
+                    $input[$index] = $temp;
+                }
+            }
         } else {
             $input = $parameters;
         }
@@ -49,11 +61,10 @@ class RestEloquentRepository
     
     public function putItem($id, $parameters)
     {
+        $result = $this->model->findOrFail($id);
         $files = $this->getFilesParameter($parameters);
         $input = $this->getNonFilesParameter($parameters);
         $input = $this->resolveUpload($files, $input);
-        $result = $this->model->findOrFail($id);
-        
         $result->update($input);
 
         return $result;
