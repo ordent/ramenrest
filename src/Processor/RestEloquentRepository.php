@@ -184,45 +184,49 @@ class RestEloquentRepository
                     $model = $model->whereNotIn($i, $out);
                 // like operator (field=$value)
                 } elseif (substr($l, 0, 1) == "$") {
-
-                    if(env('DB_CONNECTION') == 'pgsql'){
-                    $model = $model->where($i, 'ilike', "%".substr($l, 1)."%");
-                    } else {
                     $model = $model->where($i, 'like', "%".substr($l, 1)."%");
-                    }
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
-                    $rel = $path[1];
-                    $model_path = str_replace(";", "\\", $path[0]);
-                    $id = [];    
-                
-                    if(count($path == 4)){
-                        $prop = $path[2];
-                        $value = $path[3];
-                        if(env('DB_CONNECTION') == 'pgsql'){
-                            $temp = app($model_path)->where($prop, 'ilike', '%'.$value.'%')->get();
-                        } else {
-                            $temp = app($model_path)->where($prop, 'like', '%'.$value.'%')->get();
-                        }
-                        foreach($temp as $t){
-                            if(is_null($t->{$rel}[0])){
-                                array_push($id, $t->{$rel}->{$i});
-                            }else{
-                                foreach ($t->{$rel} as $key => $col) {
-                                    array_push($id, $col->{$i});
-                                }
-                            }   
-                        }
-                    }else{
-                        $value = $path[2];
-                        $temp = app($model_path)->find($value);
-                        if(!is_null($temp)){
-                            $id = $temp->{$rel}->pluck("id")->all();
+                    try{
+                        $fieldToSearch = $path[1];
+                    }catch(\Exception $e){
+                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                    }
+                    try{
+                        $value = $path[2];                        
+                    }catch(\Exception $e){
+                        abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                    }
+                    try{
+                        $fieldToReturn = $path[3];
+                    }catch(\Exception $e){
+                        abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                    }
+                    $modelPath = str_replace(";", "\\", $path[0]);
+                    $result = [];
+                    // variant one - get array of (something) from searching another model field=;App;User:field:value
+                    if(count($path) == 4){
+                        // return collection of model
+                        $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                        foreach($modelToSearch as $mts){
+                            array_push($result, $mts->{$fieldToReturn});
                         }
                     }
 
-                    $model = $model->whereIn($i, $id);
+                    if(count($path) == 5){
+                        // return collection of relation
+                        try{
+                            $relation = $path[4];
+                        }catch(\Exception $e){
+                            abort(500, 'You need to specify the relation if you want to search the relation of the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from the relation.');
+                        }
+                        $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->first();                        
+                        foreach($modelToSearch->relation as $mts){
+                            array_push($result, $mts->{$fieldToReturn});
+                        }
+                    }
+                    $model = $model->whereIn($i, $result);
                 // find by relation
                 // } else if ($i == "searchByRelation"){
                 //     $path = explode(":", $l);
