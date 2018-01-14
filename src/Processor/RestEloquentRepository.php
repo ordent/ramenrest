@@ -193,50 +193,81 @@ class RestEloquentRepository
                     }catch(\Exception $e){
                         abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
                     }
-                    try{
-                        $value = $path[2];                        
-                    }catch(\Exception $e){
-                        abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
-                    }
-                    try{
-                        $fieldToReturn = $path[3];
-                    }catch(\Exception $e){
-                        abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
-                    }
+                    
                     $modelPath = str_replace(";", "\\", $path[0]);
                     $result = [];
                     // variant one - get array of (something) from searching another model field=;App;User:field:value
                     if(count($path) == 4){
+                        try{
+                            $value = $path[3];                        
+                        }catch(\Exception $e){
+                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                        }
+                        try{
+                            $fieldToReturn = $path[2];
+                        }catch(\Exception $e){
+                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                        }
                         // return collection of model
-                        $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                        $checkIfMultipleValueInvolved = explode(',',$value);
+                        
+                        if(count($checkIfMultipleValueInvolved)>1){
+                            $modelToSearch = app($modelPath);
+                            foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
+                                if($idx == 0){
+                                    $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                }else{
+                                    $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                }
+                            }
+                            $modelToSearch = $modelToSearch->get();
+                        }else{
+                            $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                        }
+                        
                         foreach($modelToSearch as $mts){
                             array_push($result, $mts->{$fieldToReturn});
                         }
                     }
 
                     if(count($path) == 5){
+                        try{
+                            $value = $path[4];                        
+                        }catch(\Exception $e){
+                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                        }
+                        try{
+                            $fieldToReturn = $path[2];
+                        }catch(\Exception $e){
+                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                        }
                         // return collection of relation
                         try{
-                            $relation = $path[4];
+                            $relation = $path[3];
                         }catch(\Exception $e){
                             abort(500, 'You need to specify the relation if you want to search the relation of the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from the relation.');
                         }
-                        $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->first();                        
-                        foreach($modelToSearch->relation as $mts){
-                            array_push($result, $mts->{$fieldToReturn});
+                        $checkIfMultipleValueInvolved = explode(',',$value);
+                        if(count($checkIfMultipleValueInvolved)>1){
+                            $modelToSearch = app($modelPath);
+                            foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
+                                if($idx == 0){
+                                    $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                }else{
+                                    $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                }
+                            }
+                            $modelToSearch = $modelToSearch->get();
+                        }else{
+                            $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                        }
+                        foreach($modelToSearch as $motose){
+                            foreach($motose->relation as $mts){
+                                array_push($result, $mts->{$fieldToReturn});
+                            }
                         }
                     }
                     $model = $model->whereIn($i, $result);
-                // find by relation
-                // } else if ($i == "searchByRelation"){
-                //     $path = explode(":", $l);
-                //     $rel = $path[1];
-                //     $value = $path[2];
-                //     $path = str_replace(";", "\\", $path[0]);
-                //     $temp = app($path)->where($rel, $value);
-                //     if(!is_null($temp)){
-
-                //     }
                 } elseif ($i == "scope"){
                     $path = explode(";", $l);
                     foreach ($path as $key => $value) {
