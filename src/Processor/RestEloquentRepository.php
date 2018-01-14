@@ -184,7 +184,12 @@ class RestEloquentRepository
                     $model = $model->whereNotIn($i, $out);
                 // like operator (field=$value)
                 } elseif (substr($l, 0, 1) == "$") {
+
+                    if(env('DB_CONNECTION') == 'pgsql'){
+                    $model = $model->where($i, 'ilike', "%".substr($l, 1)."%");
+                    } else {
                     $model = $model->where($i, 'like', "%".substr($l, 1)."%");
+                    }
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
@@ -195,9 +200,19 @@ class RestEloquentRepository
                     if(count($path == 4)){
                         $prop = $path[2];
                         $value = $path[3];
-                        $temp = app($model_path)->where($prop, 'like', '%'.$value.'%')->get();
+                        if(env('DB_CONNECTION') == 'pgsql'){
+                            $temp = app($model_path)->where($prop, 'ilike', '%'.$value.'%')->get();
+                        } else {
+                            $temp = app($model_path)->where($prop, 'like', '%'.$value.'%')->get();
+                        }
                         foreach($temp as $t){
-                            array_push($id, $t->{$rel}->{$i});
+                            if(is_null($t->{$rel}[0])){
+                                array_push($id, $t->{$rel}->{$i});
+                            }else{
+                                foreach ($t->{$rel} as $key => $col) {
+                                    array_push($id, $col->{$i});
+                                }
+                            }   
                         }
                     }else{
                         $value = $path[2];
