@@ -199,10 +199,13 @@ class RestEloquentRepository
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
+                    if(count($path) < 4){
+                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');                        
+                    }
                     try{
                         $fieldToSearch = $path[1];
                     }catch(\Exception $e){
-                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
                     }
                     
                     $modelPath = str_replace(";", "\\", $path[0]);
@@ -212,12 +215,12 @@ class RestEloquentRepository
                         try{
                             $value = $path[3];                        
                         }catch(\Exception $e){
-                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
                         }
                         try{
                             $fieldToReturn = $path[2];
                         }catch(\Exception $e){
-                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
                         }
                         // return collection of model
                         $checkIfMultipleValueInvolved = explode(',',$value);
@@ -226,14 +229,26 @@ class RestEloquentRepository
                             $modelToSearch = app($modelPath);
                             foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
                                 if($idx == 0){
-                                    $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                    if(is_numeric($cimvi)){
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
+                                    }else{
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                    }
                                 }else{
-                                    $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                    if(is_numeric($cimvi)){
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
+                                    }else{
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                    }
                                 }
                             }
                             $modelToSearch = $modelToSearch->get();
                         }else{
-                            $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                            if(is_numeric($value)){
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
+                            }else{
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                            }
                         }
                         
                         foreach($modelToSearch as $mts){
@@ -245,35 +260,48 @@ class RestEloquentRepository
                         try{
                             $value = $path[4];                        
                         }catch(\Exception $e){
-                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
                         }
                         try{
                             $fieldToReturn = $path[2];
                         }catch(\Exception $e){
-                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn || ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from field to find.');
+                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
                         }
                         // return collection of relation
                         try{
                             $relation = $path[3];
                         }catch(\Exception $e){
-                            abort(500, 'You need to specify the relation if you want to search the relation of the model = ;Namespace;Model:$fieldToSearch:$value:$fieldToReturn:$relation. It will return the collection of field from the relation.');
+                            abort(500, 'You need to specify the relation if you want to search the relation of the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from the relation.');
                         }
                         $checkIfMultipleValueInvolved = explode(',',$value);
                         if(count($checkIfMultipleValueInvolved)>1){
                             $modelToSearch = app($modelPath);
                             foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
                                 if($idx == 0){
-                                    $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                    if(is_numeric($cimvi)){
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
+                                    }else{
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                    }
                                 }else{
-                                    $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');
+                                    if(is_numeric($cimvi)){
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
+                                    }else{
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                    }
                                 }
                             }
                             $modelToSearch = $modelToSearch->get();
                         }else{
-                            $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                            if(is_numeric($value)){
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
+                            }else{
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                            }
+                            
                         }
                         foreach($modelToSearch as $motose){
-                            foreach($motose->relation as $mts){
+                            foreach($motose->{$relation} as $mts){
                                 array_push($result, $mts->{$fieldToReturn});
                             }
                         }
