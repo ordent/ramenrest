@@ -27,6 +27,7 @@ class RestResponse
   // exception response
     public function exceptionResponse($exception)
     {
+        
         $result = null;
         $status = 0;
         if ($exception instanceof \ErrorException) {
@@ -81,11 +82,13 @@ class RestResponse
                 $result = $this->errorException($status, "App can't find the method that you use.");
             }
         }
+        
 
-        if ($exception instanceof \Exception && is_null($result)) {
+        if ($exception instanceof \Exception) {
+            
             $status = 500;
             if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all(), $exception);
+                $result = $this->errorException($status, $exception->getMessage(), $exception->getFile().":".$exception->getLine(), $exception->getTrace());
             } else {
                 $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
             }
