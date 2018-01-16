@@ -30,6 +30,7 @@ class RestResponse
         
         $result = null;
         $status = 0;
+        $result = null;
         if ($exception instanceof \ErrorException) {
             $status = 500;            
             if ($exception->getMessage() != "") {
@@ -84,7 +85,7 @@ class RestResponse
         }
         
 
-        if ($exception instanceof \Exception) {
+        if ($exception instanceof \Exception && $result == null) {
             
             $status = 500;
             if ($exception->getMessage() != "") {
