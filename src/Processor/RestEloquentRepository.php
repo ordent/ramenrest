@@ -123,7 +123,7 @@ class RestEloquentRepository
                                 if(is_numeric($search)){
                                     $model = $model->orWhere($columns['data'], $search);
                                 }else{
-                                    $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
+                                    $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
                                 }
                         }
                     }
@@ -193,9 +193,9 @@ class RestEloquentRepository
                 } elseif (substr($l, 0, 1) == "!") {
                     $out = explode(",", substr($l, 1));
                     $model = $model->whereNotIn($i, $out);
-                // like operator (field=$value)
+                // ilike operator (field=$value)
                 } elseif (substr($l, 0, 1) == "$") {
-                    $model = $model->where($i, 'like', "%".substr($l, 1)."%");
+                    $model = $model->where($i, 'ilike', "%".substr($l, 1)."%");
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
                 } elseif (substr($l, 0, 1) == ";"){
                     $path = explode(":", $l);
@@ -232,13 +232,13 @@ class RestEloquentRepository
                                     if(is_numeric($cimvi)){
                                         $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
                                     }else{
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
                                     }
                                 }else{
                                     if(is_numeric($cimvi)){
                                         $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
                                     }else{
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
                                     }
                                 }
                             }
@@ -247,7 +247,7 @@ class RestEloquentRepository
                             if(is_numeric($value)){
                                 $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
                             }else{
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'ilike', '%'.$value.'%')->get();
                             }
                         }
                         
@@ -281,13 +281,13 @@ class RestEloquentRepository
                                     if(is_numeric($cimvi)){
                                         $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
                                     }else{
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
                                     }
                                 }else{
                                     if(is_numeric($cimvi)){
                                         $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
                                     }else{
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'like', '%'.$cimvi.'%');                                        
+                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
                                     }
                                 }
                             }
@@ -296,7 +296,7 @@ class RestEloquentRepository
                             if(is_numeric($value)){
                                 $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
                             }else{
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'like', '%'.$value.'%')->get();
+                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'ilike', '%'.$value.'%')->get();
                             }
                             
                         }
