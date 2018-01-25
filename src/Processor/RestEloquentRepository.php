@@ -106,8 +106,16 @@ class RestEloquentRepository
         // parse column
         
         $parsed = array_except($attributes, config('ramen.reserved_datatable_process'));
-        
+        // dd($attributes);
+        $relation = [];
+        if(array_key_exists('relation', $attributes)){
+            array_push($relation, $attributes['relation']);
+        }
+        if(array_key_exists('with', $attributes)){
+            array_push($relation, $attributes['with']);
+        }
         $model = $this->resolveWhere($model, $parsed);
+       
         if(array_key_exists('search', $attributes)){
             if(!is_null($attributes['search']['value'])){
                 $search = $attributes['search'];
@@ -125,6 +133,21 @@ class RestEloquentRepository
                                 }else{
                                     $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
                                 }
+                        }
+                    }
+                    if(!is_null($columns['data'])){
+                        // check the relation if columns to search have '.'
+                        $relationCheck = explode('.', $columns['data']);
+                        if(count($relationCheck) > 1){
+                            $rel = $relationCheck[0];
+                            $relCol = $relationCheck[count($relationCheck) - 1];
+
+                            $relColType = \DB::connection()->getDoctrineColumn($model->getRelation($rel)->getRelated()->getTable(), $relCol)->getType()->getName();
+                            if($relColType == 'string'){
+                                $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search) {
+                                    $q->where($relCol, 'ilike', '%'.$search.'%');
+                                });
+                            }
                         }
                     }
                 }
