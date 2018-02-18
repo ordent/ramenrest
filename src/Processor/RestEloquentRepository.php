@@ -347,8 +347,17 @@ class RestEloquentRepository
                     }
                 // usecase where and whereIn (field = a,b,c)
                 } else {
-                    $in = explode(",", $l);
-                    $model = $model->whereIn($i, $in);
+                    if(strpos($i, "^") !==  false){
+                        $withTemp = explode("^", $i);
+                        if(count($withTemp) > 1){
+                            $model = $model->with($withTemp[0])->whereHas($withTemp[0], function($q) use($withTemp, $l){
+                                $q->where($withTemp[1], "ilike", "%".$l."%");
+                            });
+                        }
+                    }else{
+                        $in = explode(",", $l);
+                        $model = $model->whereIn($i, $in);
+                    }
                 }
             }
         }
