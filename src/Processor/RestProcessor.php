@@ -52,7 +52,11 @@ class RestProcessor
         $this->parseRelation($request);
         // return the data via response class
         try{
-            return $this->getItemStandardResult($this->repository->getItem($id));            
+            if($request->only('cursor') == 'true' || $request->only('cursor') == []){
+                return $this->getItemStandardResult($this->repository->getItem($id));
+            }else{
+                return $this->getItemStandardResult($this->repository->getItem($id), false);
+            }
         }catch(ModelNotFoundException $e){
             abort(404);
         }
@@ -86,9 +90,16 @@ class RestProcessor
         return $this->getItemStandardResult($this->repository->putItem($id, $parameters));
     }
 
-    private function getItemStandardResult($model){
+    private function getItemStandardResult($model, $cursor = true){
         $this->manager->setSerializer(new DataArraySerializer);
-        $resource = new Item($model, $this->transformer);        
+        $previous = null;
+        $next = null;
+        if($cursor){
+            $previous = $model->where('id', '<', $model->id)->first();
+            $next = $model->where('id', '>', $model->id)->first();
+        }
+        $resource = new Item($model, $this->transformer);   
+        $resource = $resource->setMeta(['previous'=>$previous, 'next' => $next]);
         $result = $this->manager->createData($resource)->toArray();
         return $result;
     }

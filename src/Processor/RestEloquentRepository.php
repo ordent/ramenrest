@@ -16,6 +16,7 @@ class RestEloquentRepository
     public function getItem($id)
     {
         if (is_numeric($id)) {
+            
             return $this->model->findOrFail($id);
         }
     }
