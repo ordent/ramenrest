@@ -27,7 +27,6 @@ class RestResponse
   // exception response
     public function exceptionResponse($exception)
     {
-        
         $result = null;
         $status = 0;
         $result = null;
@@ -39,8 +38,6 @@ class RestResponse
                 $result = $this->errorException($status, "Error Exception");
             }
         }
-
-        if($exception instanceof Error)
         
         if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
             $status = 404;            
