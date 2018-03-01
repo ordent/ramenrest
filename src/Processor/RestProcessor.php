@@ -104,8 +104,11 @@ class RestProcessor
         return $result;
     }
 
-    private function getCollectionStandardResult($model, $limit){
+    private function getCollectionStandardResult($model, $limit, $random = false){
         $this->manager->setSerializer(new DataArraySerializer);
+        if($random){
+            $model = $model->random($model->count())->all();
+        }
         //paginate
         $paginator = $model->paginate($limit);
         $collection = $paginator->getCollection();
@@ -154,24 +157,6 @@ class RestProcessor
     private function getDataTableQuery($query = [], $except = []){
         $fields = array_except($query, $except);
         $temp = [];
-
-        // if(!config('ramen.reserved_datatable_detail')){
-        //     foreach($fields as $i => $field){
-        //         $check = true;
-        //         foreach(config('ramen.reserved_datatable_start') as $start){
-        //             if($i == $start){
-        //                 $check = false;
-        //             }
-        //         }
-                
-        //         if($check){
-        //             $temp[$i] = $field;
-        //         }
-        //     }
-            
-        //     $fields = $temp;
-        // }
-        
         return $fields;
     }
 
@@ -186,11 +171,6 @@ class RestProcessor
             $fields = array_except($request->query(), config('ramen.reserved_parameter'));            
         }
         
-        // $soft = $request->query('soft', false);
-        // if ($soft) {
-        //     $model->withTrashed();
-        // }
-        
         
         // if doesnt have datatable pointing
         if(array_key_exists('datatables', $request->query())){
@@ -200,7 +180,7 @@ class RestProcessor
             return $this->getDatatablesStandardResult($this->repository->getDatatables($fields), $limit, $offset, $request, $this->model->count());
         }else{
             $limit = $request->query('limit', 25);
-            return $this->getCollectionStandardResult($this->repository->getCollection($fields, $request->query('orderBy')), $limit);
+            return $this->getCollectionStandardResult($this->repository->getCollection($fields, $request->query('orderBy')), $limit, $request->query('random', false));
         }
         
     }

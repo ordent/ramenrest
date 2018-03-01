@@ -184,7 +184,11 @@ class RestEloquentRepository
             foreach ($fields as $i => $l) {
                 // usecase more or less than (field=>value || field=<value)
                 if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
-                    $model = $model->where($i, substr($l, 0, 1), substr($l, 1));
+                    if(substr($l, 0, 2) == ">=" || substr($l, 0, 2) == "<="){
+                       $model  = $model->where($i, substr($l, 0, 2), substr($l, 2));
+                    }else{
+                        $model = $model->where($i, substr($l, 0, 1), substr($l, 1));                        
+                    }
                 // usecase between  range (field=|min,max)
                 } elseif(substr($l, 0, 1) == "|"){
                     $out = explode(",", substr($l, 1));
