@@ -16,8 +16,19 @@ class RestEloquentRepository
     public function getItem($id)
     {
         if (is_numeric($id)) {
-            
             return $this->model->findOrFail($id);
+        }else{
+            $filtered = array_filter($this->model->getAttributes(), function($key){
+                return (strpos($key, 'slug') === 0);
+            }, ARRAY_FILTER_USE_KEY);
+            $filtered = array_keys($filtered);
+            foreach ($filtered as $key) {
+                $result = $this->model->where($key, $id)->first();
+                if($result != null){
+                    return $result;
+                }
+            }
+            return abort(404, 'Entity slug not found');
         }
     }
 
