@@ -4,15 +4,20 @@ namespace Ordent\RamenRest\Response;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use BadMethodCallException;
 class RestResponse
 {
   // success response
-    public function successResponse($data)
+    public function successResponse($data, $cache = false)
     {
-        return response()->json($data);
+        if($cache){
+            return response()->json($data);
+        }else{
+            return response()->json($data)->header('Cache-Control','max-age=0,must-revalidate');            
+        }
     }
 
     public function createdResponse($data)
@@ -80,6 +85,14 @@ class RestResponse
                 $result = $this->errorException($status, $exception->getMessage());
             } else {
                 $result = $this->errorException($status, "App can't find the method that you use.");
+            }
+        }
+        if($exception instanceof MethodNotAllowedHttpException){
+            $status = 405;
+            if ($exception->getMessage() != "") {
+                $result = $this->errorException($status, $exception->getMessage());
+            } else {
+                $result = $this->errorException($status, " Method is not allowed.");
             }
         }
         
