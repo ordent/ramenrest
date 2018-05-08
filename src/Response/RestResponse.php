@@ -45,7 +45,7 @@ class RestResponse
         }
         
         if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
-            $status = 404;            
+            $status = 404;        
             if ($exception->getMessage() != "") {
                 $result = $this->errorException($status, $exception->getMessage());
             } else {
@@ -130,32 +130,32 @@ class RestResponse
 
     // 400 bad request. general request error
     public function errorBadRequest($message = 'Bad request'){
-        $this->error(400, $message);
+        return $this->error(400, $message);
     }
     // 401 unauthorized. auth failed error
     public function errorUnauthorized($message = 'Unauthorized'){
-        $this->error(401, $message);
+        return $this->error(401, $message);
     }
     // 403 forbidden error
     public function errorForbidden($message = 'Forbidden'){
-        $this->error(403, $message);
+        return $this->error(403, $message);
     }
     // 404 not found
     public function errorNotFound($message = 'Resource not found'){
-        $this->error(404, $message);
+        return $this->error(404, $message);
     }
     // UNUSED FOR NOW
     // 405 method not allowed error
     public function errorMethodNotAllowed($message = 'Method Not Allowed'){
-        $this->error($message, 405);
+        return $this->error($message, 405);
     }
     // 422 validation error
     public function errorValidation($errors = null, $message = 'Validation failed'){
-        $this->error(422, $message, $errors);
+       return  $this->error(422, $message, $errors);
     }
     // 500 internal error. general system error
     public function errorInternal($message = 'Internal error'){
-        $this->error(500, $message);
+        return $this->error(500, $message);
     }
     //general error
     public function error($statusCode = 500, $message = null, $detail = null){

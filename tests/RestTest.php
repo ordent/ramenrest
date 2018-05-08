@@ -1,5 +1,6 @@
 <?php
 namespace Ordent\RamenRest\Tests;
+
 use Orchestra\Testbench\TestCase;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
