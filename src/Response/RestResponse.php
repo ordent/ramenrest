@@ -3,6 +3,7 @@ namespace Ordent\RamenRest\Response;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Illuminate\Validation\ValidationException;
@@ -96,6 +97,14 @@ class RestResponse
             }
         }
         
+        if ($exception instanceof HttpException && $result == null) {
+            $status = $exception->getStatusCode();
+            if ($exception->getMessage() != "") {
+                $result = $this->errorException($status, $exception->getMessage(), $exception->getFile().":".$exception->getLine(), $exception->getTrace());
+            } else {
+                $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
+            }
+        }
 
         if ($exception instanceof \Exception && $result == null) {
             
@@ -103,7 +112,7 @@ class RestResponse
             if ($exception->getMessage() != "") {
                 $result = $this->errorException($status, $exception->getMessage(), $exception->getFile().":".$exception->getLine(), $exception->getTrace());
             } else {
-                $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
+                $result = $this->errorException($status, "Exception found, but unfortunately is not registrered in our exception registry.");
             }
         }
         
