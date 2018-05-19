@@ -12,6 +12,14 @@ use Ordent\RamenRest\Response\RestResponse;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 
+use League\Fractal\Resource\Collection as FCollection;
+use League\Fractal\Resource\Item;
+use League\Fractal\Pagination\IlluminatePaginatorAdapter;
+use Ordent\RamenRest\Transformer\RestTransformer;
+use League\Fractal\Manager;
+use League\Fractal\Serializer\DataArraySerializer;
+
+
 class RestController extends Controller
 {
     protected $routes = [];
@@ -100,5 +108,20 @@ class RestController extends Controller
     
     public function postCollection()
     {
+    }
+
+    protected function wrapModel($result){
+        $manager = new Manager;
+        $manager->setSerializer(new DataArraySerializer);
+
+        if($result instanceof Collection){
+            $resource = new FCollection($result, $result->first()->getTransformer());
+        }else{
+            $resource = new Item($result, $result->getTransformer());
+        }
+        
+        $results = $manager->createData($resource)->toArray();
+        
+        return $results;
     }
 }
