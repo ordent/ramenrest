@@ -37,7 +37,7 @@ class RestEloquentRepository
         $files = $this->getFilesParameter($parameters);
         $input = $this->getNonFilesParameter($parameters);
         $input = $this->resolveUpload($files, $input);
-        return $this->model->create($input);
+        return $this->model->create($input)->fresh();
     }
 
     private function getFilesParameter($parameters)
@@ -77,7 +77,7 @@ class RestEloquentRepository
         $files = $this->getFilesParameter($parameters);
         $input = $this->getNonFilesParameter($parameters);
         $input = $this->resolveUpload($files, $input);
-        $result->update($input);
+        $result->update($input)->fresh();
 
         return $result;
     }
