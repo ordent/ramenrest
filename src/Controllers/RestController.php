@@ -11,7 +11,8 @@ use Ordent\RamenRest\Requests\RestRequest;
 use Ordent\RamenRest\Response\RestResponse;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
-
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SCol;
 use League\Fractal\Resource\Collection as FCollection;
 use League\Fractal\Resource\Item;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
@@ -105,23 +106,44 @@ class RestController extends Controller
         }
                 return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
     }
-    
-    public function postCollection()
-    {
-    }
 
-    protected function wrapModel($result){
+    protected function wrapModel($result, $meta = null, $paginator = null){
         $manager = new Manager;
         $manager->setSerializer(new DataArraySerializer);
 
-        if($result instanceof Collection){
-            $resource = new FCollection($result, $result->first()->getTransformer());
+        if($result instanceof Collection || $result instanceof SCol){
+            $transformer = null;
+            if(!is_null($result->first())){
+                $transformer = $result->first()->getTransformer();
+            }
+            $transformer = $this->parseTransformer($transformer);
+            $resource = new FCollection($result, $transformer);
+            if(!is_null($paginator)){
+                $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));
+            }
         }else{
-            $resource = new Item($result, $result->getTransformer());
+            $transformer = null;
+            if(!is_null($transformer)){
+                $transformer = $result->getTransformer();
+            }
+            $transformer = $this->parseTransformer($transformer);            
+            $resource = new Item($result, $transformer);
         }
-        
+        if(!is_null($meta)){
+            $resource->setMeta($meta);
+        }
         $results = $manager->createData($resource)->toArray();
         
         return $results;
+    }
+
+    protected function parseTransformer($transformer){
+        if(is_string($transformer)){
+            return app($transformer);
+        }else if(is_null($transformer)){
+            return new RestTransformer;
+        }else{
+            return $transformer;
+        }
     }
 }
