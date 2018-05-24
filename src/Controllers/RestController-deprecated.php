@@ -12,16 +12,21 @@ use Ordent\RamenRest\Response\RestResponse;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 
+use League\Fractal\Resource\Collection as FCollection;
+use League\Fractal\Resource\Item;
+use League\Fractal\Pagination\IlluminatePaginatorAdapter;
+use Ordent\RamenRest\Transformer\RestTransformer;
+use League\Fractal\Manager;
+use League\Fractal\Serializer\DataArraySerializer;
+
+
 class RestController extends Controller
 {
     protected $routes = [];
     protected $model = "\Illuminate\Database\Eloquent\Model";
     protected $uri = "/";
     protected $processor = null;
-    protected $res = [];
-    protected $serializer = null;
-    protected $meta = [];
-    protected $cursor = false;
+
     public function __construct(RestProcessor $processor, Model $model = null)
     {
         // Inject Response
@@ -54,72 +59,69 @@ class RestController extends Controller
     public function getCollection(Request $request)
     {
         // return collection
-        $pre = function($request){
-            dd($request);
-            return $request;
-        };
-
-        return response()->successResponse(
-            $this->processor->getCollectionStandard(
-                $request, null, null, null, $this->res, $this->serializer, $this->meta));
+        return response()->successResponse($this->processor->getCollectionStandard($request));
     }
 
     public function getItem(Request $request, $id)
     {
         // return first id it found or not found http exception as a json
-        return response()->successResponse(
-            $this->processor->getItemStandard(
-                $request, $id, null, null, null, $this->cursor, $this->serializer, $this->meta));
+        return response()->successResponse($this->processor->getItemStandard($request, $id));
     }
-
-    
 
     public function postItem(Request $request, $validate = true)
     {
         // validate the request first, rules fetched from model get rules method
-        $request = $this->parseValidate($validate, "store");
-        // return newly created item
-        if($request instanceof \Illuminate\Http\JsonResponse){
-            return $request;
+        if($validate){
+            try {
+                $request = RestRequestFactory::createRequest($this->model, "store");
+            } catch (ValidationException $e) {
+                return response()->exceptionResponse($e);
+            }
         }
-        return response()->createdResponse(
-            $this->processor->postItemStandard(
-                $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
+        // return newly created item
+        return response()->createdResponse($this->processor->postItemStandard($request));
     }
     public function putItem($id, Request $request, $validate = true)
     {
-        $request = $this->parseValidate($validate, "update");
-        return response()->successResponse(
-            $this->processor->putItemStandard(
-                $id, $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
+        if($validate){
+            try {
+                $request = RestRequestFactory::createRequest($this->model, "update");
+            } catch (ValidationException $e) {
+                return response()->exceptionResponse($e);
+            }
+        }
+
+        return response()->successResponse($this->processor->putItemStandard($id, $request));
     }
 
     public function deleteItem($id, Request $request, $validate = true)
     {
-        $request = $this->parseValidate($validate, "delete");
-        return response()->noContentResponse(
-            $this->processor->deleteItemStandard($id, $request, null, null));
-    }
-    
-    public function postCollection(Request $request, $validate = true)
-    {
-        $request = $this->parseValidate($validate, "store");
-        return response()->createdResponse(
-            $this->processor->postItemCollection(
-                $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
-    }
-
-    private function parseValidate($validate = true, $type = "store"){
         if($validate){
             try {
-                $request = RestRequestFactory::createRequest($this->model, $type);
+                $request = RestRequestFactory::createRequest($this->model, "delete");
             } catch (ValidationException $e) {
-                return response()->exceptionResponse($e);
+                return response()->exceptionResponse($e);                
             }
-            return $request;
         }
-        return $request;
+                return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
+    }
+    
+    public function postCollection()
+    {
     }
 
-    
+    protected function wrapModel($result){
+        $manager = new Manager;
+        $manager->setSerializer(new DataArraySerializer);
+
+        if($result instanceof Collection){
+            $resource = new FCollection($result, $result->first()->getTransformer());
+        }else{
+            $resource = new Item($result, $result->getTransformer());
+        }
+        
+        $results = $manager->createData($resource)->toArray();
+        
+        return $results;
+    }
 }

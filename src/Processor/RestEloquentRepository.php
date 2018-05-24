@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 class RestEloquentRepository
 {
     protected $model = null;
+    
     public function setModel(Model $model)
     {
         $this->model = $model;
