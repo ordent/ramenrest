@@ -125,13 +125,16 @@ class RestResponse
         $result->meta = new \StdClass;
         $result->data = [];
         $result->meta->status_code = $status;
+        if(!is_array($detail)){
+            $detail = [$detail];
+        }
         if (!is_null($message)) {
             $result->meta->message = $message;
         }
         if (!is_null($detail)) {
             $result->meta->detail = $detail;
         }
-        if (!is_null($exception)) {
+        if (!is_null($exception) && \App::environments('local')) {
             $result->meta->exception = $exception;
         }
         return response()->json($result, $status);
