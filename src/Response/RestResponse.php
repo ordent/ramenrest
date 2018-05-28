@@ -30,108 +30,78 @@ class RestResponse
     {
         return response()->json([], 204);
     }
-  // exception response
-    public function exceptionResponse($exception)
-    {
+
+    public function exceptionResponse($exception){
+        $status = 500;
         $result = null;
-        $status = 0;
-        $result = null;
-        if ($exception instanceof \ErrorException) {
-            $status = 500;            
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage());
-            } else {
-                $result = $this->errorException($status, "Error Exception");
-            }
+        $details = null;
+        $trace = null;
+        if(\App::environment() == 'local'){
+            $details = $exception->getFile().":".$exception->getLine();
+            $trace = $exception->getTrace();
         }
-        
-        if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
-            $status = 404;        
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage());
-            } else {
-                $result = $this->errorException($status, "Entity not found");
-            }
+        switch ($exception) {
+            case ($exception instanceof ModelNotFoundException) : 
+                $result = $this->errorException(404, $this->resolveMessage($exception->getMessage(), "Either routes or entity that you want is not found."), $details, $trace);  
+                break;
+            case ($exception instanceof NotFoundHttpException):
+                $result = $this->errorException(404, $this->resolveMessage($exception->getMessage(), "Either routes or entity that you want is not found."), $details, $trace);  
+                break;
+            case ($exception instanceof QueryException):
+                $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Can't connect to database or there is something wrong with your query."), $details, $trace);  
+                break;
+            case ($exception instanceof ValidationException):
+                $result = $this->errorException(422, $this->resolveMessage($exception->getMessage(), "Inputted data is not valid. Check the validation rules response."), $exception->validator->getMessageBag()->all());
+                break;
+            case ($exception instanceof MassAssignmentException):
+                $result = $this->errorException(422, $this->resolveMessage($exception->getMessage(), "Inputted data is not valid, some properties cannot be assigned."), $details, $trace);  
+                break;
+            case ($exception instanceof MethodNotAllowedHttpException):
+                $result = $this->errorException(405, $this->resolveMessage($exception->getMessage(), "Unfortunately the method is not available to access."), $details, $trace);  
+                break;
+            case ($exception instanceof BadMethodCallException):
+                $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Some function is not found or there is something wrong with the call stack."), $details, $trace);  
+                break;
+            case ($exception instanceof HttpException):
+                $result = $this->errorException($exception->getStatusCode(), $this->resolveMessage($exception->getMessage(), "Default error HTTP exception."), $details, $trace);  
+                break;
+            case ($exception instanceof \ErrorException):
+                $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Default error exception, unfortunately it has not been specified in registry."), $details, $trace);
+                break;
+            case ($exception instanceof \Exception):
+                $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Default error exception, unfortunately it has not been specified in registry."), $details, $trace);
+                break;
+            default:
+                $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Default error exception, unfortunately it has not been specified in registry."), $details, $trace);
+                break;
         }
-        // 500
-        if ($exception instanceof QueryException) {
-            $status = 500;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage());
-            } else {
-                $result = $this->errorException($status, "Database Error, please notify administrator");
-            }
-        }
-        if ($exception instanceof ValidationException) {
-            $status = 422;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all());
-            } else {
-                $result = $this->errorException($status, "You failed the validation test.");
-            }
-        }
-
-        if ($exception instanceof MassAssignmentException) {
-            $status = 422;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->validator->getMessageBag()->all());
-            } else {
-                $result = $this->errorException($status, "Assigment failed, please check if the properties is properly allowed.");
-            }
-        }
-
-        if ($exception instanceof BadMethodCallException) {
-            $status = 500;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage());
-            } else {
-                $result = $this->errorException($status, "App can't find the method that you use.");
-            }
-        }
-        if($exception instanceof MethodNotAllowedHttpException){
-            $status = 405;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage());
-            } else {
-                $result = $this->errorException($status, " Method is not allowed.");
-            }
-        }
-        
-        if ($exception instanceof HttpException && $result == null) {
-            $status = $exception->getStatusCode();
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->getFile().":".$exception->getLine(), $exception->getTrace());
-            } else {
-                $result = $this->errorException($status, "Assignment failed, please check if the properties is properly allowed.");
-            }
-        }
-
-        if ($exception instanceof \Exception && $result == null) {
-            
-            $status = 500;
-            if ($exception->getMessage() != "") {
-                $result = $this->errorException($status, $exception->getMessage(), $exception->getFile().":".$exception->getLine(), $exception->getTrace());
-            } else {
-                $result = $this->errorException($status, "Exception found, but unfortunately is not registrered in our exception registry.");
-            }
-        }
-        
         return $result;
     }
+
+    private function resolveMessage($message, $default = "Default error exception"){
+        if(is_null($message) || $message == ""){
+            return $default;
+        }
+        return $message;
+    }
+  // exception response
 
     private function errorException($status = 500, $message = null, $detail = null, $exception = null)
     {
         $result = new \StdClass;
         $result->meta = new \StdClass;
-        $result->data = [];
+        $result->data = null;
         $result->meta->status_code = $status;
+        if(!is_array($detail)){
+            $detail = [$detail];
+        }
         if (!is_null($message)) {
             $result->meta->message = $message;
         }
         if (!is_null($detail)) {
             $result->meta->detail = $detail;
         }
-        if (!is_null($exception)) {
+        if (!is_null($exception) && \App::environment('local')) {
             $result->meta->exception = $exception;
         }
         return response()->json($result, $status);
@@ -168,15 +138,6 @@ class RestResponse
     }
     //general error
     public function error($statusCode = 500, $message = null, $detail = null){
-        // //create response content in array format
-        // $content['status'] = $statusCode;
-        // $content['message'] = $message;
-        // if ( $detail ){
-        //     $content['detail'] = $detail;
-        // }
-        // $data['errors'] = $content;
-        // //create json response and throw it
-        // response()->json($data, $statusCode)->throwResponse();
         return $this->errorException($statusCode, $message, $detail);
     }
 }

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Ordent\RamenRest\Processor\RestEloquentRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class RestProcessor
+class RestProcessorDeprecated
 {
     protected $model = null;
     protected $repository = null;

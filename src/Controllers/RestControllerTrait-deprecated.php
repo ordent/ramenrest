@@ -12,34 +12,8 @@ use Ordent\RamenRest\Response\RestResponse;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
 
-use League\Fractal\Resource\Collection as FCollection;
-use League\Fractal\Resource\Item;
-use League\Fractal\Pagination\IlluminatePaginatorAdapter;
-use Ordent\RamenRest\Transformer\RestTransformer;
-use League\Fractal\Manager;
-use League\Fractal\Serializer\DataArraySerializer;
-
-
-class RestControllerDeprecated extends Controller
+trait RestControllerTraitDeprecated
 {
-    protected $routes = [];
-    protected $model = "\Illuminate\Database\Eloquent\Model";
-    protected $uri = "/";
-    protected $processor = null;
-
-    public function __construct(RestProcessor $processor, Model $model = null)
-    {
-        // Inject Response
-        // Inject Processor
-        $this->processor = $processor;
-        // Inject model
-        if(!is_null($model)){
-            $this->setModel($model);
-        }else{
-            $this->setModel($this->model);
-        }
-    }
-
     protected function setModel($model){
         if (!$this->model instanceof Model && is_string($this->model)) {
             $class = new ReflectionClass($this->model);
@@ -68,7 +42,7 @@ class RestControllerDeprecated extends Controller
         return response()->successResponse($this->processor->getItemStandard($request, $id));
     }
 
-    public function postItem(Request $request, $validate = true)
+    public function postItem(Request $request, $validate)
     {
         // validate the request first, rules fetched from model get rules method
         if($validate){
@@ -81,7 +55,7 @@ class RestControllerDeprecated extends Controller
         // return newly created item
         return response()->createdResponse($this->processor->postItemStandard($request));
     }
-    public function putItem($id, Request $request, $validate = true)
+    public function putItem($id, Request $request, $validate)
     {
         if($validate){
             try {
@@ -94,34 +68,9 @@ class RestControllerDeprecated extends Controller
         return response()->successResponse($this->processor->putItemStandard($id, $request));
     }
 
-    public function deleteItem($id, Request $request, $validate = true)
+    public function deleteItem($id, Request $request)
     {
-        if($validate){
-            try {
-                $request = RestRequestFactory::createRequest($this->model, "delete");
-            } catch (ValidationException $e) {
-                return response()->exceptionResponse($e);                
-            }
-        }
-                return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
+        return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
     }
     
-    public function postCollection()
-    {
-    }
-
-    protected function wrapModel($result){
-        $manager = new Manager;
-        $manager->setSerializer(new DataArraySerializer);
-
-        if($result instanceof Collection){
-            $resource = new FCollection($result, $result->first()->getTransformer());
-        }else{
-            $resource = new Item($result, $result->getTransformer());
-        }
-        
-        $results = $manager->createData($resource)->toArray();
-        
-        return $results;
-    }
 }

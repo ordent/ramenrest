@@ -53,11 +53,6 @@ class RestController extends Controller
 
     public function getCollection(Request $request)
     {
-        // return collection
-        $pre = function($request){
-            dd($request);
-            return $request;
-        };
 
         return response()->successResponse(
             $this->processor->getCollectionStandard(

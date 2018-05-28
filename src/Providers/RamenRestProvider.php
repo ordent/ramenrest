@@ -14,7 +14,6 @@ class RamenRestProvider extends ServiceProvider
     public function boot()
     {
         $this->loadRoutesFrom(__DIR__.'/../Routes/routes.php');
-
         $responseFactory = $this->app[\Ordent\RamenRest\Response\RestResponse::class];
         foreach (get_class_methods($responseFactory) as $method){
             \Response::macro($method, [$responseFactory, $method]);
@@ -43,5 +42,9 @@ class RamenRestProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../config/ramen.php', 'ramen'
         );
+        $this->app->register(\Intervention\Image\ImageServiceProvider::class);
+        $this->app->singleton('FileProcessor', function($app){
+            return new \Ordent\RamenRest\Processor\FileProcessor;
+        });
     }
 }

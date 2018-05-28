@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Ordent\RamenRest\Processor\RestEloquentRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as ECol;
+use Illuminate\Support\Collection as SCol;
 class RestProcessor
 {
     protected $model = null;
@@ -29,7 +30,7 @@ class RestProcessor
         $this->manager->setSerializer($this->serializer);
     }
 
-    public function getItemStandard(Request $request, $id, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = []){
+    public function getItemStandard(Request $request, $id, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = [], $break = false){
         if(!is_null($pre)){
             $request = $pre($request);
         }
@@ -42,6 +43,9 @@ class RestProcessor
             $result = $intermediate($result);
         }
         $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || $cursor);
+        if($break){
+            return array($result, $defaultCursor, $serializer, $meta, $post);
+        }
         return $this->getItemStandardResult($result, $defaultCursor, $serializer, $meta, $post);
         
     }
@@ -61,7 +65,7 @@ class RestProcessor
         return $result;
     }
     
-    public function postItemStandard(Request $request, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = [])
+    public function postItemStandard(Request $request, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = [], $break = false)
     {
         if(!is_null($pre)){
             $request = $pre($request);
@@ -76,10 +80,13 @@ class RestProcessor
             $result = $intermediate($result);
         }
         $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || array_key_exists('cursor', $request->query())|| $cursor);
+        if($break){
+            return array($result, $defaultCursor, $serializer, $meta, $post);
+        }
         return $this->getItemStandardResult($result, $defaultCursor, $serializer, $meta, $post);
     }
 
-    public function postItemCollection(Request $request, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = []){
+    public function postItemCollection(Request $request, $pre = null, $intermediate = null, $post = null, $cursor = false, $serializer = null, $meta = [], $break = false){
         if(!is_null($pre)){
             $request = $pre($request);
         }
@@ -93,11 +100,14 @@ class RestProcessor
             $result = $intermediate($result);
         }
         $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || array_key_exists('cursor', $request->query())|| $cursor);
+        if($break){
+            return array($result, $defaultCursor, $serializer, $meta, $post);
+        }
         return $this->getItemMultipleResult($result, $defaultCursor, $serializer, $meta, $post);
 
     }
 
-    public function putItemStandard($id, Request $request, $pre = null, $intermediate = null, $post = null, $serializer = null, $meta = [])
+    public function putItemStandard($id, Request $request, $pre = null, $intermediate = null, $post = null, $cursor = null, $serializer = null, $meta = [], $break = false)
     {
         if(!is_null($pre)){
             $request = $pre($request);
@@ -107,15 +117,18 @@ class RestProcessor
         // parse relation
         $this->parseRelation($request);
         // return the data via response class
-        $result = $this->repository->putItem($parameters);
+        $result = $this->repository->putItem($id, $parameters);
         if(!is_null($intermediate)){
             $result = $intermediate($result);
         }
-        $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || array_key_exists('cursor', $request->query())|| $cursor);        
-        return $this->getItemStandardResult($result, $cursor, $serializer, $meta, $post);
+        $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || array_key_exists('cursor', $request->query())|| $cursor);
+        if($break){
+            return array($result, $defaultCursor, $serializer, $meta, $post);
+        }
+        return $this->getItemStandardResult($result, $defaultCursor, $serializer, $meta, $post);
     }
 
-    public function getCollectionStandard(Request $request, $pre = null, $intermediate = null, $post = null, $reserved = [], $serializer = null, $meta = [])
+    public function getCollectionStandard(Request $request, $pre = null, $intermediate = null, $post = null, $reserved = [], $serializer = null, $meta = [], $break = false)
     {
         $fields = [];
         if(!is_null($pre)){
@@ -134,6 +147,13 @@ class RestProcessor
         }
         if(!is_null($intermediate)){
             $result = $intermediate($result);
+        }
+        if($break){
+            if (array_key_exists('datatables', $request->query())) {
+                return array($result, $limit, $offset, $request, $this->model->count(), $serializer, $meta, $post);
+            } else {
+                return array($result, $limit, $request->query('random', false), $serializer, $meta, $post);
+            }
         }
         // if doesnt have datatable pointing
         if (array_key_exists('datatables', $request->query())) {
@@ -180,9 +200,11 @@ class RestProcessor
             $this->transformer = $this->resolveTransformer($this->model->transformer);
         }
     }
-    private function resolveTransformer(RestTransformer $transformer){
+    private function resolveTransformer($transformer = null){
         if(is_string($transformer)){
             return app($transformer);
+        }else if(is_null($transformer)){
+            return $this->transformer;
         }
         return $transformer;
     }
@@ -338,15 +360,20 @@ class RestProcessor
         return $fields;
     }
 
-    public function wrapModel($result, $serializer, $transformer, $meta = []){
+    public function wrapModel($result, $serializer, $transformer, $meta = [], $paginator){
         $this->manager->setSerializer($this->resolveSerializer($serializer));
 
-        if($result instanceof ECol){
+        if($result instanceof ECol || $result instanceof SCol){
             $resource = new Collection($result, $this->resolveTransformer($transformer));
+            if(!is_null($paginator)){
+                $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));
+            }
         }else{
             $resource = new Item($result, $this->resolveTransformer($transformer));
         }
-        $resource->setMeta($meta);
+        if(!is_null($meta)){
+            $resource->setMeta($meta);
+        }
         $results = $this->manager->createData($resource)->toArray();
         return $results;
     }
