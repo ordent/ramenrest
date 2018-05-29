@@ -6,7 +6,7 @@ use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Ordent\RamenRest\Transformer\RestTransformer;
-use League\Fractal\Manager;
+// use League\Fractal\Manager;
 use League\Fractal\Serializer\DataArraySerializer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -21,10 +21,10 @@ class RestProcessor
     protected $transformer = null;
     protected $manager = null;
     protected $serializer = null;
-    public function __construct(RestEloquentRepository $repository, Manager $manager, RestTransformer $transformer, DataArraySerializer $serializer)
+    public function __construct(RestEloquentRepository $repository, RestTransformer $transformer, DataArraySerializer $serializer)
     {
         $this->repository = $repository;
-        $this->manager = $manager;
+        $this->manager = app('RestManager');
         $this->transformer = $transformer;
         $this->serializer = $serializer;
         $this->manager->setSerializer($this->serializer);
@@ -273,6 +273,7 @@ class RestProcessor
             $collection = $post($collection);
         }
         $queryParams = array_diff_key($_GET, array_flip(['page']));
+        
         $paginator->appends($queryParams);
         $resource = new Collection($collection, $this->transformer);
         $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));

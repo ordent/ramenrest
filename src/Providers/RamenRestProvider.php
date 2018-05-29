@@ -46,5 +46,8 @@ class RamenRestProvider extends ServiceProvider
         $this->app->singleton('FileProcessor', function($app){
             return new \Ordent\RamenRest\Processor\FileProcessor;
         });
+        $this->app->singleton('RestManager', function($app){
+            return new \League\Fractal\Manager;
+        });
     }
 }
