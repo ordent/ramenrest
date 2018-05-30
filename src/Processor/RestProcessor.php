@@ -4,6 +4,7 @@ namespace Ordent\RamenRest\Processor;
 use Illuminate\Http\Request;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
+use League\Fractal\Resource\Primitive;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Ordent\RamenRest\Transformer\RestTransformer;
 // use League\Fractal\Manager;
@@ -212,6 +213,9 @@ class RestProcessor
         if(is_string($serializer)){
             return app($serializer);
         }
+        if(is_null($serializer)){
+            return $this->serializer;
+        }
         return $serializer;
     }
     private function getItemStandardResult($model, $cursor = true, $serializer = null, $meta = [], $post = null)
@@ -361,21 +365,35 @@ class RestProcessor
         return $fields;
     }
 
-    public function wrapModel($result, $serializer, $transformer, $meta = [], $paginator){
+    public function wrapModel($result, $serializer, $transformer, $meta = [], $paginator, $request = null, $post = null){
         $this->manager->setSerializer($this->resolveSerializer($serializer));
-
+        if(!is_null($request)){
+            $this->parseRelation($request);
+        }
         if($result instanceof ECol || $result instanceof SCol){
             $resource = new Collection($result, $this->resolveTransformer($transformer));
             if(!is_null($paginator)){
                 $resource->setPaginator(new IlluminatePaginatorAdapter($paginator));
             }
-        }else{
+        }else if($result instanceof Model){
             $resource = new Item($result, $this->resolveTransformer($transformer));
+        }else{
+            $resource = new Item($result, function($data){
+                return $data;
+            });
         }
+
         if(!is_null($meta)){
+            if(is_object($meta)){
+                $meta = (array) $meta;
+            }
             $resource->setMeta($meta);
         }
         $results = $this->manager->createData($resource)->toArray();
+
+        if(!is_null($post)){
+            $results = $post($results);
+        }
         return $results;
     }
 }
