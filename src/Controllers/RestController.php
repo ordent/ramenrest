@@ -104,7 +104,7 @@ class RestController extends Controller
                 $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
     }
 
-    private function parseValidate($validate = true, $type = "store"){
+    protected function parseValidate($validate = true, $type = "store"){
         if($validate){
             try {
                 $request = RestRequestFactory::createRequest($this->model, $type);
