@@ -35,6 +35,7 @@ class RestProcessor
         if(!is_null($pre)){
             $request = $pre($request);
         }
+        $this->parseRelation($request);
         try{
             $result = $this->repository->getItem($id);
         } catch (ModelNotFoundException $e) {
@@ -43,6 +44,7 @@ class RestProcessor
         if(!is_null($intermediate)){
             $result = $intermediate($result);
         }
+        
         $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || $cursor);
         if($break){
             return array($result, $defaultCursor, $serializer, $meta, $post);
