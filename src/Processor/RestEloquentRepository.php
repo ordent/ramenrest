@@ -276,8 +276,8 @@ class RestEloquentRepository
     }
 
     public function resolveSearchMultiple($model, $attribute, $query){
-        $in = explode(",", $l);
-        return $model->whereIn($i, $in);
+        $in = explode(",", $query);
+        return $model->whereIn($attribute, $in);
     }
     /**
      * resolveWhere 
