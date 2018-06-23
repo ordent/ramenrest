@@ -44,7 +44,7 @@ class RestProcessor
         if(!is_null($intermediate)){
             $result = $intermediate($result);
         }
-        
+
         $defaultCursor = ($request->only('cursor') == 'true' || $request->only('cursor') == [] || $cursor);
         if($break){
             return array($result, $defaultCursor, $serializer, $meta, $post);
@@ -225,7 +225,9 @@ class RestProcessor
         if(!is_null($serializer)){
             $this->manager->setSerializer($this->resolveSerializer($serializer));
         }
-        $defaultMeta = [];
+        $defaultMeta = [
+            'status_code' => $status_code
+        ];
         if($post){
             $model = $post($model);
         }
@@ -234,6 +236,7 @@ class RestProcessor
             $next = null;
             $previous = $model->where('id', '<', $model->id)->orderBy('id', 'desc')->first();
             $next = $model->where('id', '>', $model->id)->orderBy('id', 'asc')->first();
+            $status_code = 200;
             $defaultMeta = array_merge($defaultMeta, ['previous'=>$previous, 'next' => $next]);
         }
 
@@ -267,7 +270,10 @@ class RestProcessor
         if(!is_null($serializer)){
             $this->manager->setSerializer($this->resolveSerializer($serializer));
         }
-        $defaultMeta = [];
+        $defaultMeta = [
+            'status_code' => 200,
+            'message' => 'collection successfully returned'
+        ];
 
         if ($random) {
             $model = $model->random($model->count())->all();

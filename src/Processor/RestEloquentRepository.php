@@ -248,9 +248,12 @@ class RestEloquentRepository
 
     public function resolveScope($model, $attribute, $query){
         $path = explode(";", $query);
-
         foreach ($path as $key => $value) {
-                list($method, $param) = explode(":", $value);
+                $method = null;
+                $param = null;
+                if(count(explode(":", $value))>1){
+                    list($method, $param) = explode(":", $value);
+                }
                 try{
                     if($param != null){
                         $param = explode(",", $param);
