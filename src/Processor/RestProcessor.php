@@ -226,7 +226,7 @@ class RestProcessor
             $this->manager->setSerializer($this->resolveSerializer($serializer));
         }
         $defaultMeta = [
-            'status_code' => $status_code
+            'status_code' => 200
         ];
         if($post){
             $model = $post($model);
