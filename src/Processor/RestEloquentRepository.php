@@ -200,9 +200,9 @@ class RestEloquentRepository
                     
         $targetModel = app(str_replace(";", "\\", $targetModel));
         $result = [];
-
+        $value = $path[count($path) - 1];
         // return collection of model
-        $targetMultiple = count(explode(',',$value)>1);
+        $targetMultiple = count(explode(',',$value))>1;
         
         if($targetMultiple){
             $value = explode(',',$value);
