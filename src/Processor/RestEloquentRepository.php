@@ -102,7 +102,11 @@ class RestEloquentRepository
                                 if(is_numeric($search)){
                                     $model = $model->orWhere($columns['data'], $search);
                                 }else{
-                                    $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
+                                    if($model->getConnection()->getDriverName() == 'mysql'){
+                                        $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
+                                    }else{
+                                        $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
+                                    }
                                 }
                         }
                     }
@@ -115,8 +119,12 @@ class RestEloquentRepository
 
                             $relColType = \DB::connection()->getDoctrineColumn($model->getRelation($rel)->getRelated()->getTable(), $relCol)->getType()->getName();
                             if($relColType == 'string'){
-                                $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search) {
-                                    $q->where($relCol, 'ilike', '%'.$search.'%');
+                                $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search, $model) {
+                                    if($model->getConnection()->getDriverName() == 'mysql'){
+                                        $q->where($relCol, 'like', '%'.$search.'%');                                        
+                                    }else{
+                                        $q->where($relCol, 'ilike', '%'.$search.'%');
+                                    }
                                 });
                             }
                         }
@@ -166,7 +174,11 @@ class RestEloquentRepository
     }
 
     private function resolveLike($model, $attribute, $query){
-        return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+        if($model->getConnection()->getDriverName() == 'mysql'){
+            return $model->where($attribute, 'like', "%".substr($query, 1)."%");
+        }else{
+            return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+        }
     }
 
     private function resolveClassModel($model, $attribute, $query){
@@ -211,13 +223,22 @@ class RestEloquentRepository
                     if(is_numeric($val)){
                         $targetModel = $targetModel->where($targetField, $val);                                     
                     }else{
-                        $targetModel = $targetModel->where($targetField, 'ilike', '%'.$val.'%');                                        
+                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                            $targetModel = $targetModel->where($targetField, 'like', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->where($targetField, 'ilike', '%'.$val.'%');
+                        }
+                        
                     }
                 }else{
                     if(is_numeric($val)){
                         $targetModel = $targetModel->orWhere($targetField, $val);                                     
                     }else{
-                        $targetModel = $targetModel->orWhere($targetField, 'ilike', '%'.$val.'%');                                        
+                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                            $targetModel = $targetModel->orWhere($targetField, 'like', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->orWhere($targetField, 'ilike', '%'.$val.'%');
+                        }
                     }
                 }
             }
@@ -226,7 +247,12 @@ class RestEloquentRepository
             if(is_numeric($value)){
                 $targetModel = $targetModel->where($targetField, $value)->get();
             }else{
-                $targetModel = $targetModel->where($targetField, 'ilike', '%'.$value.'%')->get();
+                if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                    $targetModel = $targetModel->where($targetField, 'like', '%'.$value.'%')->get();
+                }else{
+                    $targetModel = $targetModel->where($targetField, 'ilike', '%'.$value.'%')->get();
+                }
+                    
             }
         }
         if(count($path) == 4){
@@ -271,8 +297,12 @@ class RestEloquentRepository
         $withTemp = explode("^", $attribute);
         if(count($withTemp) > 1){
             list($relation, $targetField) = $withTemp;
-            $model = $model->with($relation)->whereHas($relation, function($q) use($targetField, $query){
-                $q->where($targetField, "ilike", "%".$attribute."%");
+            $model = $model->with($relation)->whereHas($relation, function($q) use($targetField, $query, $model){
+                if($model->getConnection()->getDriverName() == 'mysql'){
+                    $q->where($targetField, "like", "%".$attribute."%");
+                }else{
+                    $q->where($targetField, "ilike", "%".$attribute."%");
+                }
             });
         }
         return $model;
