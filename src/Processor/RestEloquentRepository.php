@@ -58,7 +58,11 @@ class RestEloquentRepository
 
     public function getCollection($attributes, $orderBy){
         $model = $this->model;
-        
+        $exception = [];
+        if(method_exists($model, 'getWhereExcept')){
+            $exception = $model->getExcept();
+        }
+        $attributes = array_except($attributes, $exception);
         $model = $this->resolveWhere($model, $attributes);
         
         $model = $this->resolveOrderBy($model, $orderBy);
