@@ -60,8 +60,9 @@ class RestEloquentRepository
         $model = $this->model;
         $exception = [];
         if(method_exists($model, 'getWhereExcept')){
-            $exception = $model->getExcept();
+            $exception = $model->getWhereExcept();
         }
+
         $attributes = array_except($attributes, $exception);
         $model = $this->resolveWhere($model, $attributes);
         
