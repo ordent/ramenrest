@@ -38,8 +38,24 @@ class RestEloquentRepository
 
     
     public function putItem($id, $parameters = []){
-        $result = $this->model->findOrFail($id);
+        $result = null;
+        // $result = $this->model->findOrFail($id);
+        
+        if(is_numeric($id)){
+            $result = $this->model->findOrFail($id);
+        }else{
+            $sluggable = array_where($this->model->getFillable(), function($value, $key){
+                return substr($value, 0, 4) == 'slug';
+            });
+            $result = $this->model;
+            foreach($sluggable as $slug){
+                $result = $result->orWhere($slug, $id);
+            }
+            $result = $result->get()->first();
+        }
+
         $result->update($parameters);
+
         return $result->fresh();
     }
 

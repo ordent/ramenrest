@@ -119,8 +119,11 @@ class RestProcessor
         $parameters = $this->getRequestParameters($request);
         // parse relation
         $this->parseRelation($request);
-        // return the data via response class
+        
         $result = $this->repository->putItem($id, $parameters);
+        
+        // return the data via response class
+
         if(!is_null($intermediate)){
             $result = $intermediate($result);
         }
