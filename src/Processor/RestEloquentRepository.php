@@ -33,7 +33,7 @@ class RestEloquentRepository
     }
 
     public function postItem($parameters){
-        return $this->model->create($parameters)->fresh();
+        return $this->model->create($parameters)->refresh();
     }
 
     
@@ -56,7 +56,7 @@ class RestEloquentRepository
 
         $result->update($parameters);
 
-        return $result->fresh();
+        return $result->refresh();
     }
 
     public function deleteItem($id, $parameters){

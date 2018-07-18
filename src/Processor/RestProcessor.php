@@ -223,7 +223,7 @@ class RestProcessor
         }
         return $serializer;
     }
-    private function getItemStandardResult($model, $cursor = true, $serializer = null, $meta = [], $post = null)
+    public function getItemStandardResult($model, $cursor = true, $serializer = null, $meta = [], $post = null)
     {
         if(!is_null($serializer)){
             $this->manager->setSerializer($this->resolveSerializer($serializer));
@@ -252,7 +252,7 @@ class RestProcessor
         return $result;
     }
 
-    private function getItemMultipleResult($model, $cursor = true, $serializer = null, $meta = [], $post = null)
+    public function getItemMultipleResult($model, $cursor = true, $serializer = null, $meta = [], $post = null)
     {
         if(!is_null($serializer)){
             $this->manager->setSerializer($this->resolveSerializer($serializer));
@@ -268,7 +268,7 @@ class RestProcessor
         return $result;
     }
 
-    private function getCollectionStandardResult($model, $limit = 25, $random = false, $serializer = null, $meta = null, $post = null)
+    public function getCollectionStandardResult($model, $limit = 25, $random = false, $serializer = null, $meta = null, $post = null)
     {
         if(!is_null($serializer)){
             $this->manager->setSerializer($this->resolveSerializer($serializer));
