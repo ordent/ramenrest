@@ -24,10 +24,8 @@ class RamenRestProvider extends ServiceProvider
         );
 
         $this->publishes([
-            __DIR__.'/../config/ramen.php' => config_path('ramen.php'),
+            __DIR__.'/../config/ramen.php' => config_path('ramen.php')
         ]);
-
-        
         
         // \Event::listen('Ordent\RamenRest\Events\FileHandlerEvent', 'Ordent\RamenRest\Listeners\FileHandlerListener@handle');
     }
@@ -39,9 +37,11 @@ class RamenRestProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/ramen.php', 'ramen'
-        );
+        $this->mergeConfigFrom(__DIR__.'/../config/ramen.php', 'ramen');
+        $this->mergeConfigFrom(__DIR__.'/../config/filesystems-disks.php', 'filesystems.disks');
+        // dd(require __DIR__.'/../config/filesystems.php');
+        // $this->mergeConfigFrom(__DIR__.'/../config/filesystems-default.php', 'filesystems.default');
+        $this->app->register(\Superbalist\LaravelGoogleCloudStorage\GoogleCloudStorageServiceProvider::class);
         $this->app->register(\Intervention\Image\ImageServiceProvider::class);
         $this->app->singleton('FileProcessor', function($app){
             return new \Ordent\RamenRest\Processor\FileProcessor;

@@ -9,6 +9,7 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use BadMethodCallException;
+use Google\Cloud\Core\Exception\NotFoundException;
 class RestResponse
 {
   // success response
@@ -40,7 +41,13 @@ class RestResponse
             $details = $exception->getFile().":".$exception->getLine();
             $trace = $exception->getTrace();
         }
+        
         switch ($exception) {
+            case ($exception instanceof NotFoundException):
+            
+            $result = $this->errorException(404, $this->resolveMessage($exception->getMessage(), "Either routes or entity that you want is not found."), $details, null);
+
+                break;
             case ($exception instanceof ModelNotFoundException) : 
                 $result = $this->errorException(404, $this->resolveMessage($exception->getMessage(), "Either routes or entity that you want is not found."), $details, $trace);  
                 break;
@@ -75,6 +82,7 @@ class RestResponse
                 $result = $this->errorException(500, $this->resolveMessage($exception->getMessage(), "Default error exception, unfortunately it has not been specified in registry."), $details, $trace);
                 break;
         }
+       
         return $result;
     }
 
@@ -92,6 +100,7 @@ class RestResponse
         $result->meta = new \StdClass;
         $result->data = null;
         $result->meta->status_code = $status;
+        
         if(!is_array($detail)){
             $detail = [$detail];
         }
@@ -104,6 +113,7 @@ class RestResponse
         if (!is_null($exception) && \App::environment('local')) {
             $result->meta->exception = $exception;
         }
+
         return response()->json($result, $status);
     }
 
