@@ -68,7 +68,6 @@ class FileProcessor{
             }
         }
         $result = \Storage::url($data);
-
         return $result;
     }
 }
