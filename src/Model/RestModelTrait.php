@@ -33,9 +33,9 @@ trait RestModelTrait{
                     $results = array_add($results, $key, $this->uploadFile($value, $attribute, $key, $path, $disks));
                 }
             }
-            $results = json_encode($results);
+            $results = $results;
         }else{
-            $results = $this->uploadFile($files, $attribute, null, null, $disks);
+            $results = $this->uploadFile($files, $attribute, null, $path, $disks);
         }
 
         return $results;

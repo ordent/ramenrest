@@ -38,8 +38,11 @@ class FileProcessor{
         $temp = explode($data, '/');
         $filename = $temp[count($temp) - 1];
         if(!is_null($meta)){
-            if($disks == 'public' || $disks == 'local'){
-                $image = Image::make(storage_path().\Storage::url($data));                
+            if($disks == 'public'){
+                $image = Image::make(storage_path().'/app/public/'.$data);
+            }
+            else if($disks == 'local'){
+                $image = Image::make(storage_path().'/app/'.$data);                
             }else{
                 $image = Image::make(\Storage::url($data));
             }
@@ -61,8 +64,10 @@ class FileProcessor{
                     $image->fit($width, $height);
                 }
             }
-            if($disks == 'public' || $disks == 'local'){
-                $image->save(storage_path().\Storage::url($data));
+            if($disks == 'public'){
+                $image->save(storage_path().'/app/public/'.$data);
+            }else if($disks == 'local'){
+                $image->save(storage_path().'/app/'.$data);
             }else{
                 \Storage::put($data, $image->stream());
             }

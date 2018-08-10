@@ -2,14 +2,16 @@
 
 namespace Ordent\RamenRest\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\FormRequest;
+
 class RestRequest extends FormRequest
 {
     protected $model = null;
     protected $key = "store";
 
-    public function __construct(Model $model, $key){
+    public function __construct(Model $model, $key)
+    {
         $this->model = $model;
         $this->key = $key;
     }
@@ -20,6 +22,11 @@ class RestRequest extends FormRequest
      */
     public function authorize()
     {
+        if (!is_null($this->model)) {
+            if (method_exists($this->model, "getAuthorization")) {
+                return $this->model->getAuthorization($this->key);
+            }
+        }
         return true;
     }
 
@@ -30,8 +37,8 @@ class RestRequest extends FormRequest
      */
     public function rules()
     {
-        if(!is_null($this->model)){
-            if(method_exists($this->model, "getRules")){
+        if (!is_null($this->model)) {
+            if (method_exists($this->model, "getRules")) {
                 return $this->model->getRules($this->key);
             }
         }
@@ -40,8 +47,8 @@ class RestRequest extends FormRequest
 
     public function messages()
     {
-        if(!is_null($this->model)){
-            if(method_exists($this->model, "getMessages")){
+        if (!is_null($this->model)) {
+            if (method_exists($this->model, "getMessages")) {
                 return $this->model->getMessages($this->key);
             }
         }
