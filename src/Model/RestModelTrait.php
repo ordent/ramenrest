@@ -20,28 +20,36 @@ trait RestModelTrait{
         }
     }
 
-    protected function resolveUpload($files, $attribute, $path = null, $disks = null){
+    protected function resolveUpload($files, $attribute, $path = null, $disks = null, $meta = null){
         if(is_null($disks)){
             $disks = config('filesystems.default', 'public');
         }
+
         if(is_array($files)){
             $results = [];
-            foreach ($files as $key => $value) {
-                if(is_integer($key)){
-                    array_push($results, $this->uploadFile($value, $attribute, null, $path, $disks));
+            foreach ($files as $key => $file) {
+                if(is_string($file)){
+                    array_push($results, $file);
                 }else{
-                    $results = array_add($results, $key, $this->uploadFile($value, $attribute, $key, $path, $disks));
+                    array_push($results, $this->uploadFile($file, $attribute, null, $path, $disks, $meta));
                 }
             }
             $results = $results;
         }else{
-            $results = $this->uploadFile($files, $attribute, null, $path, $disks);
+            $results = null;
+            if(!is_null($files)){
+                if(is_string($files)){
+                    $results = $files;
+                }else{
+                    $results = $this->uploadFile($files, $attribute, null, $path, $disks, $meta);
+                }
+            }
         }
 
         return $results;
     }
 
-    protected function uploadFile($data, $attribute, $key = null, $path = null, $disks = null){
+    protected function uploadFile($data, $attribute, $key = null, $path = null, $disks = null, $meta = null){
         if(is_null($key)){
             $attribute_key = $attribute;
         }else{
@@ -61,6 +69,7 @@ trait RestModelTrait{
             $meta['path'] = $path;
         }
         $fileProcessor = app('FileProcessor');
+        
         return $fileProcessor->uploadFile($data, $meta['path'], $meta, $disks);
     }
 
