@@ -77,7 +77,7 @@ trait RestModelTrait{
         if(config('filesystems.default') == 'local'){
             return $data;
         }else if(config('filesystems.default') == 'public'){
-            return asset($data);
+            return asset('/storage/'.$data);
         }else{
             return $data;
         }
