@@ -119,7 +119,7 @@ class RestProcessor
         $parameters = $this->getRequestParameters($request);
         // parse relation
         $this->parseRelation($request);
-        
+
         $result = $this->repository->putItem($id, $parameters);
         
         // return the data via response class
@@ -131,6 +131,7 @@ class RestProcessor
         if($break){
             return array($result, $defaultCursor, $serializer, $meta, $post);
         }
+        
         return $this->getItemStandardResult($result, $defaultCursor, $serializer, $meta, $post);
     }
 
@@ -331,7 +332,42 @@ class RestProcessor
         if (count($request->json()->all())>0) {
             $parameters = $request->json()->all();
         } else {
-            $parameters = $request->all();
+            $parameters = [];
+            // $parameters = $request->all();
+            // check if both file and input exists
+            foreach($request->input() as $k => $i){
+                if(array_key_exists($k, $request->file())){
+                    $temp = [];
+                    if(is_array($i) && is_array($request->file($k))){
+                        $temp = array_merge($i, $request->file($k));
+                    }else if(is_array($i) && !is_array($request->file($k))){
+                        $temp = $i;
+                        array_push($temp, $request->file($k));
+                    }else if(!is_array($i) && is_array($request->file($k))){
+                        $temp = $request->file($k);
+                        array_push($temp, $i);
+                    }else{
+                        array_push($temp, $i);
+                        array_push($temp, $request->file($k));
+                    }
+                    $replace = [
+                        $k => $temp
+                    ];
+                }else{
+                    $replace = [
+                        $k => $i
+                    ];
+                }
+                $parameters = array_merge($parameters, $replace);
+            }
+            foreach($request->file() as $k => $f){
+                if(!array_key_exists($k, $request->input())){
+                    $replace = [
+                        $k => $f
+                    ];
+                    $parameters = array_merge($parameters, $replace);
+                }
+            }
         }
         return $parameters;
     }

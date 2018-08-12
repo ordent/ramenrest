@@ -45,6 +45,7 @@ class FilesController extends RestController
         }
         // files
         $temp = $this->resolveUpload($files, 'files', $location, null);
+        
         if(is_array($temp)){
             $results = [];
             foreach($temp as $t){

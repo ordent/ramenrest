@@ -49,7 +49,7 @@ class FileProcessor
         $completePath = $this->getRealPath($this->resolvePath($path), $disks);
         if ($disks == 'public' || $disks == 'local') {
             if (!file_exists($completePath)) {
-                if (!mkdir($completePath, 0777, true)) {
+                if (!mkdir($completePath, 0755, true)) {
                     abort(500, 'Folder creation is failed');
                 }
             }
