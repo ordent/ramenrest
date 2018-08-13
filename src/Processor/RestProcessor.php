@@ -230,7 +230,8 @@ class RestProcessor
             $this->manager->setSerializer($this->resolveSerializer($serializer));
         }
         $defaultMeta = [
-            'status_code' => 200
+            'status_code' => 200,
+            'total' => $model->count()
         ];
         if($post){
             $model = $post($model);
