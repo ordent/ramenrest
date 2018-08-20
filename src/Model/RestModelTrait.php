@@ -74,6 +74,9 @@ trait RestModelTrait{
     }
 
     protected function getFile($data){
+        if(strpos($data, 'http') !== false){
+            return $data;
+        }
         if(config('filesystems.default') == 'local'){
             return $data;
         }else if(config('filesystems.default') == 'public'){
