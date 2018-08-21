@@ -13,11 +13,12 @@ trait RestModelTrait{
 
     public function getRules($key = null)
     {
-        if ($key != null && array_key_exists($key, $this->rules)) {
-            return $this->rules[$key];
-        } else {
-            return [];
+        if(isset($this->rules)){
+            if ($key != null && array_key_exists($key, $this->rules)) {
+                return $this->rules[$key];
+            }
         }
+        return [];
     }
 
     protected function resolveUpload($files, $attribute, $path = null, $disks = null, $meta = null){
