@@ -1,14 +1,18 @@
 <?php
 namespace Ordent\RamenRest\Model;
 use Illuminate\Http\UploadedFile;
+use Ordent\RamenRest\Transformer\RestTransformer;
 
 trait RestModelTrait{
     
     public function getTransformer(){
-        if(is_string($this->transformer)){
-            return app($this->transformer);
+        if($this->transformer){
+            if(is_string($this->transformer)){
+                return app($this->transformer);
+            }
+            return $this->transformer;
         }
-        return $this->transformer;
+        return new RestTransformer;
     }
 
     public function getRules($key = null)
@@ -21,7 +25,7 @@ trait RestModelTrait{
         return [];
     }
 
-    protected function resolveUpload($files, $attribute, $path = null, $disks = null, $meta = null){
+    public function resolveUpload($files, $attribute, $path = null, $disks = null, $meta = null){
         if(is_null($disks)){
             $disks = config('filesystems.default', 'public');
         }
@@ -50,7 +54,7 @@ trait RestModelTrait{
         return $results;
     }
 
-    protected function uploadFile($data, $attribute, $key = null, $path = null, $disks = null, $meta = null){
+    public function uploadFile($data, $attribute, $key = null, $path = null, $disks = null, $meta = null){
         if(is_null($key)){
             $attribute_key = $attribute;
         }else{

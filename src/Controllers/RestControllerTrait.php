@@ -14,7 +14,8 @@ use ReflectionClass;
 
 trait RestControllerTrait
 {
-    protected function setModel($model){
+    protected function setModel($model)
+    {
         if (!$this->model instanceof Model && is_string($this->model)) {
             $class = new ReflectionClass($this->model);
             if (!$class->isAbstract()) {
@@ -25,18 +26,13 @@ trait RestControllerTrait
             }
         }
 
-        if($model instanceof Model){
-            $this->processor->setModel($this->model);            
+        if ($model instanceof Model) {
+            $this->processor->setModel($this->model);
         }
     }
 
     public function getCollection(Request $request)
     {
-        // return collection
-        $pre = function($request){
-            dd($request);
-            return $request;
-        };
 
         return response()->successResponse(
             $this->processor->getCollectionStandard(
@@ -51,14 +47,12 @@ trait RestControllerTrait
                 $request, $id, null, null, null, $this->cursor, $this->serializer, $this->meta));
     }
 
-    
-
     public function postItem(Request $request, $validate = true)
     {
         // validate the request first, rules fetched from model get rules method
         $request = $this->parseValidate($validate, "store");
         // return newly created item
-        if($request instanceof \Illuminate\Http\JsonResponse){
+        if ($request instanceof \Illuminate\Http\JsonResponse) {
             return $request;
         }
         return response()->createdResponse(
@@ -79,7 +73,7 @@ trait RestControllerTrait
         return response()->noContentResponse(
             $this->processor->deleteItemStandard($id, $request, null, null));
     }
-    
+
     public function postCollection(Request $request, $validate = true)
     {
         $request = $this->parseValidate($validate, "store");
@@ -88,8 +82,9 @@ trait RestControllerTrait
                 $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
     }
 
-    private function parseValidate($validate = true, $type = "store"){
-        if($validate){
+    protected function parseValidate($validate = true, $type = "store")
+    {
+        if ($validate) {
             try {
                 $request = RestRequestFactory::createRequest($this->model, $type);
             } catch (ValidationException $e) {
@@ -99,6 +94,4 @@ trait RestControllerTrait
         }
         return $request;
     }
-
-    
 }

@@ -195,10 +195,30 @@ class RestEloquentRepository
     }
 
     private function resolveLike($model, $attribute, $query){
-        if($model->getConnection()->getDriverName() == 'mysql'){
-            return $model->where($attribute, 'like', "%".substr($query, 1)."%");
+        $relColType = \DB::connection()->getDoctrineColumn($model->getTable(), $attribute)->getType()->getName();
+        if($relColType != 'datetime'){
+            if($model->getConnection()->getDriverName() == 'mysql'){
+                return $model->where($attribute, 'like', "%".substr($query, 1)."%");
+            }else{
+                return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+            }
         }else{
-            return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+            $temp = explode('-', substr($query, 1));
+            if(count($temp) == 3){
+                return $model->whereDate($attribute, substr($query, 1));
+            }else if(count($temp) == 2){
+                return $model->whereYear($attribute, $temp[0])->whereMonth($attribute, $temp[1]);
+            }else{
+                if(strlen(substr($query, 1)) === 4){
+                    return $model->whereYear($attribute, substr($query, 1));
+                }
+                if(strlen(substr($query, 1)) === 2){
+                    return $model->whereMonth($attribute, substr($query, 1));
+                }
+                if(strlen(substr($query, 1)) === 3){
+                    return $model->whereDay($attribute, substr($query, 2));
+                }
+            }
         }
     }
 

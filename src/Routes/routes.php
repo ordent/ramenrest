@@ -12,10 +12,14 @@ use Illuminate\Http\Request;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-// Route::get('/users', '\Ordent\RamenRest\Controllers\UserController@getCollection');
-// Route::get('/users/{id}', '\Ordent\RamenRest\Controllers\UserController@getItem');
-// Route::post('/users', '\Ordent\RamenRest\Controllers\UserController@postItem');
-// Route::put('/users/{id}', '\Ordent\RamenRest\Controllers\UserController@putItem');
-// Route::delete('/users/{id}', '\Ordent\RamenRest\Controllers\UserController@deleteItem');
 
-Route::post('/api/files', '\Ordent\RamenRest\Controllers\FilesController@uploadFiles');
+// adding routes for default files entities
+Route::get('/api/files', '\Ordent\RamenRest\Controllers\FilesController@getCollection');
+Route::get('/api/files/{id}', '\Ordent\RamenRest\Controllers\FilesController@getItem');
+Route::post('/api/files', '\Ordent\RamenRest\Controllers\FilesController@postItem');
+Route::post('/api/files/{id}', '\Ordent\RamenRest\Controllers\FilesController@putItem');
+Route::put('/api/files/{id}', '\Ordent\RamenRest\Controllers\FilesController@putItem');
+Route::delete('/api/files/{id}', '\Ordent\RamenRest\Controllers\FilesController@deleteItem');
+Route::post('/api/files/{id}/delete', '\Ordent\RamenRest\Controllers\FilesController@deleteItem');
+
+Route::post('/api/uploads', '\Ordent\RamenRest\Controllers\FilesController@modellessUpload');
