@@ -9,9 +9,18 @@ use Illuminate\Validation\ValidationException;
 use Ordent\RamenRest\Processor\RestProcessor;
 use Ordent\RamenRest\Requests\RestRequestFactory;
 use ReflectionClass;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SCol;
+use League\Fractal\Resource\Collection as FCollection;
+use League\Fractal\Resource\Item;
+use League\Fractal\Pagination\IlluminatePaginatorAdapter;
+use Ordent\RamenRest\Transformer\RestTransformer;
+use League\Fractal\Manager;
+use League\Fractal\Serializer\DataArraySerializer;
 
 class RestController extends Controller
 {
+    use RestControllerTrait;
     protected $routes = [];
     protected $model = "\Illuminate\Database\Eloquent\Model";
     protected $uri = "/";
@@ -32,6 +41,4 @@ class RestController extends Controller
             $this->setModel($this->model);
         }
     }
-
-    use RestControllerTrait;
 }
