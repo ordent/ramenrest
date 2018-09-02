@@ -9,12 +9,15 @@
     ],
     "require": {
         "league/fractal": "^0.16.0",
-        "orchestra/testbench": "^3.6"
+        "orchestra/testbench": "^3.6",
+        "intervention/image": "^2.4",
+        "superbalist/laravel-google-cloud-storage": "^2.0"
     },
     "autoload": {
         "psr-4": {
             "Ordent\\RamenRest\\": "src/",
-            "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/"
+            "Orchestra\\Testbench\\" : "vendor/orchestra/testbench-core/src/",
+            "Intervention\\Image\\" : "vendor/intervention/image/src/"
         }
     },
     "description": "RamenRest is another Rest Library for Laravel, it focused on exposing of each component separately and use it on controller. Rather than just having AIO process."

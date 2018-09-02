@@ -1,19 +1,23 @@
 <?php
 namespace Ordent\RamenRest\Controllers;
-
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use Ordent\RamenRest\Response\RestResponse;
 
-class FilesController extends Controller
+class FilesController extends RestController
 {
-    function __construct(RestResponse $response){
-        $this->response = $response;
-    }
-    function uploadFiles(Request $request){
+
+    protected $model = '\Ordent\RamenRest\Model\FileModel';
+    protected $url = '/files';
+
+    // uploading files without model
+
+    public function modellessUpload(Request $request){
+        // default rules, override it via ('rules')
         $rules = $request->input('rules', 'required|file|max:1048576');
+        // default failed error message, override it via ('failed')
         $failed = $request->input('failed', 'files is either not correct or theres some problem with the connection');
-        $location = $request->input('location', 'standard');
+        // default location, override it via ('location')
+        $location = $request->input('location', 'files');
+
         $validator = \Validator::make($request->all(), [
             "files" => $rules
         ]);
@@ -23,17 +27,27 @@ class FilesController extends Controller
         }
         
         $files = $request->file('files');
+        $meta = [
+            'rules' => $rules,
+            'location' => $location,
+            'status_code' => 200,
+            'extension' => $files->getClientOriginalExtension(),
+            'size'=>$files->getClientSize()
+        ];
+        // $response = new \StdClass;
+        // $response->data = new \StdClass;
         
-        $response = new \StdClass;
-        $response->data = new \StdClass;
-        $response->meta = new \StdClass;
-        $response->meta->rules = $rules;
-        $response->meta->location = $location;
-        $response->meta->status = 200;
-        $response->meta->extension = $files->getClientOriginalExtension();
-        $response->meta->size = $files->getClientSize();
-
-        $response->data->files = asset('/storage/')."/".$files->store('images/'.$location, "public");
-        return $this->response->successResponse($response);
+        // $meta->rules = $rules;
+        // $meta->location = $location;
+        // $meta->status = 200;
+        // $meta->extension = $files->getClientOriginalExtension();
+        // $meta->size = $files->getClientSize();
+        // // $response->data->files = asset('/storage/')."/".$files->store('images/'.$location, "public");
+        // $response->data->files = $this->model->uploadFile($files, 'files', $key = null, $location, 'public', $meta = null);
+        $result = array_wrap($this->model->resolveUpload($files, 'files', $location, 'public', $meta));
+        
+        return $this->processor->wrapModel($result, null, null, $meta, null, null, null);
+        // return response()->successResponse($response);
     }
+
 }

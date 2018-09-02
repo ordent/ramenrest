@@ -9,21 +9,21 @@ use Illuminate\Http\UploadedFile;
 class RestEloquentRepository
 {
     protected $model = null;
-    public function setModel(Model $model)
-    {
+
+    public function setModel(Model $model){
         $this->model = $model;
     }
-    public function getItem($id)
-    {
+    public function getModel(){
+        return $this->model;
+    }
+    public function getItem($id){
         if (is_numeric($id)) {
             return $this->model->findOrFail($id);
         }else{
-            $filtered = array_filter($this->model->getAttributes(), function($key){
-                return (strpos($key, 'slug') === 0);
-            }, ARRAY_FILTER_USE_KEY);
-            $filtered = array_keys($filtered);
+            $filtered = array_keys(array_filter($this->model->getAttributes(), function($key){ return (strpos($key, 'slug') === 0); }, ARRAY_FILTER_USE_KEY));
             foreach ($filtered as $key) {
                 $result = $this->model->where($key, $id)->first();
+                // need to do it like this, since only return when slug found
                 if($result != null){
                     return $result;
                 }
@@ -32,58 +32,34 @@ class RestEloquentRepository
         }
     }
 
-    public function postItem($parameters)
-    {
-        $files = $this->getFilesParameter($parameters);
-        $input = $this->getNonFilesParameter($parameters);
-        $input = $this->resolveUpload($files, $input);
-        return $this->model->create($input)->fresh();
+    public function postItem($parameters){
+        return $this->model->create($parameters)->refresh();
     }
 
-    private function getFilesParameter($parameters)
-    {
-        $files = [];
-        if (method_exists($this->model, "getFiles")) {
-            $temporary = array_only($parameters, $this->model->getFiles());
-            foreach($temporary as $index => $temp){
-                if($temp instanceof UploadedFile){
-                    $files[$index] = $temp;
-                }
-            }
-        }
-        return $files;
-    }
-
-    private function getNonFilesParameter($parameters)
-    {
-        $input = [];
-        if (method_exists($this->model, "getFiles")) {
-            $input = array_except($parameters, $this->model->getFiles());
-            $temporary = array_only($parameters, $this->model->getFiles());
-            foreach($temporary as $index => $temp){
-                if(!$temp instanceof UploadedFile){
-                    $input[$index] = $temp;
-                }
-            }
-        } else {
-            $input = $parameters;
-        }
-        return $input;
-    }
     
-    public function putItem($id, $parameters)
-    {
-        $result = $this->model->findOrFail($id);
-        $files = $this->getFilesParameter($parameters);
-        $input = $this->getNonFilesParameter($parameters);
-        $input = $this->resolveUpload($files, $input);
-        $result->update($input)->fresh();
+    public function putItem($id, $parameters = []){
+        $result = null;
+        // $result = $this->model->findOrFail($id);
+        
+        if(is_numeric($id)){
+            $result = $this->model->findOrFail($id);
+        }else{
+            $sluggable = array_where($this->model->getFillable(), function($value, $key){
+                return substr($value, 0, 4) == 'slug';
+            });
+            $result = $this->model;
+            foreach($sluggable as $slug){
+                $result = $result->orWhere($slug, $id);
+            }
+            $result = $result->get()->first();
+        }
 
-        return $result;
+        $result->update($parameters);
+
+        return $result->refresh();
     }
 
-    public function deleteItem($id, $parameters)
-    {
+    public function deleteItem($id, $parameters){
         if (array_key_exists("soft", $parameters)) {
             if ($parameters["soft"]) {
                 $this->model->findOrFail($id)->delete();
@@ -96,10 +72,14 @@ class RestEloquentRepository
         return [];
     }
 
-    public function getCollection($attributes, $orderBy)
-    {
+    public function getCollection($attributes, $orderBy){
         $model = $this->model;
-        
+        $exception = [];
+        if(method_exists($model, 'getWhereExcept')){
+            $exception = $model->getWhereExcept();
+        }
+
+        $attributes = array_except($attributes, $exception);
         $model = $this->resolveWhere($model, $attributes);
         
         $model = $this->resolveOrderBy($model, $orderBy);
@@ -143,7 +123,11 @@ class RestEloquentRepository
                                 if(is_numeric($search)){
                                     $model = $model->orWhere($columns['data'], $search);
                                 }else{
-                                    $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
+                                    if($model->getConnection()->getDriverName() == 'mysql'){
+                                        $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
+                                    }else{
+                                        $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
+                                    }
                                 }
                         }
                     }
@@ -156,8 +140,12 @@ class RestEloquentRepository
 
                             $relColType = \DB::connection()->getDoctrineColumn($model->getRelation($rel)->getRelated()->getTable(), $relCol)->getType()->getName();
                             if($relColType == 'string'){
-                                $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search) {
-                                    $q->where($relCol, 'ilike', '%'.$search.'%');
+                                $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search, $model) {
+                                    if($model->getConnection()->getDriverName() == 'mysql'){
+                                        $q->where($relCol, 'like', '%'.$search.'%');                                        
+                                    }else{
+                                        $q->where($relCol, 'ilike', '%'.$search.'%');
+                                    }
                                 });
                             }
                         }
@@ -179,6 +167,192 @@ class RestEloquentRepository
         
         return $model;
     }
+
+    private function resolveComparison($model , $attribute, $query){
+        return $model->where($attribute, $this->resolveOperator($query), $this->resolveAttribute($query));        
+    }
+
+    private function resolveBetween($model , $attribute, $query){
+        return $model->whereBetween($attribute, explode(",", $this->resolveAttribute($query)));
+    }
+
+    private function resolveJson($model, $attribute, $query){
+        $out = explode("}", $this->resolveAttribute($query));
+        $identifier = $this->resolveJsonOperator($out[0]);
+        $path = $this->resolveJsonAttribute($out[0]);
+        $key = $this->buildJsonPath($attribute, $path);
+        if($identifier ==  "=" || $identifier ==  ">" || $identifier == "<" || $identifier == "<=" || $identifier == ">="){
+            $model = $model->where($key, $identifier, $out[1]);
+        }else if($identifier == "|"){
+            $range = explode(",", $out[1]);
+            $model = $model->whereBetween($key, $range);
+        }
+        return $model;
+    }
+
+    private function resolveNot($model, $attribute, $query){
+        return $model->whereNotIn($attribute, explode(',', substr($query, 1)));
+    }
+
+    private function resolveLike($model, $attribute, $query){
+        $relColType = \DB::connection()->getDoctrineColumn($model->getTable(), $attribute)->getType()->getName();
+        if($relColType != 'datetime'){
+            if($model->getConnection()->getDriverName() == 'mysql'){
+                return $model->where($attribute, 'like', "%".substr($query, 1)."%");
+            }else{
+                return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+            }
+        }else{
+            $temp = explode('-', substr($query, 1));
+            if(count($temp) == 3){
+                return $model->whereDate($attribute, substr($query, 1));
+            }else if(count($temp) == 2){
+                return $model->whereYear($attribute, $temp[0])->whereMonth($attribute, $temp[1]);
+            }else{
+                if(strlen(substr($query, 1)) === 4){
+                    return $model->whereYear($attribute, substr($query, 1));
+                }
+                if(strlen(substr($query, 1)) === 2){
+                    return $model->whereMonth($attribute, substr($query, 1));
+                }
+                if(strlen(substr($query, 1)) === 3){
+                    return $model->whereDay($attribute, substr($query, 2));
+                }
+            }
+        }
+    }
+
+    private function resolveClassModel($model, $attribute, $query){
+        $path = explode(':', $query);
+        if(count($path) < 4){
+            abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
+        }
+        $result = [];
+        $modelPath = str_replace(";", "\\", $path[0]);        
+        try{
+            $fieldToSearch = $path[1];
+        }catch(\Exception $e){
+            abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
+        }
+    }
+    // search value based on other model result
+    private function resolveSearchOtherModel($model, $attribute, $query){
+        $path = explode(":", $query);
+
+        if(count($path) < 4){
+            abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
+        }
+        
+        if(count($path) == 4){
+            list($targetModel, $targetField, $targetResult, $targetValue) = $path;
+        }
+
+        if(count($path) == 5){
+            list($targetModel, $targetField, $targetResult, $targetRelation, $targetValue) = $path;
+        }
+                    
+        $targetModel = app(str_replace(";", "\\", $targetModel));
+        $result = [];
+        $value = $path[count($path) - 1];
+        // return collection of model
+        $targetMultiple = count(explode(',',$value))>1;
+        
+        if($targetMultiple){
+            $value = explode(',',$value);
+            foreach($value as $key => $val){
+                if($key == 0){
+                    if(is_numeric($val)){
+                        $targetModel = $targetModel->where($targetField, $val);                                     
+                    }else{
+                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                            $targetModel = $targetModel->where($targetField, 'like', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->where($targetField, 'ilike', '%'.$val.'%');
+                        }
+                        
+                    }
+                }else{
+                    if(is_numeric($val)){
+                        $targetModel = $targetModel->orWhere($targetField, $val);                                     
+                    }else{
+                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                            $targetModel = $targetModel->orWhere($targetField, 'like', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->orWhere($targetField, 'ilike', '%'.$val.'%');
+                        }
+                    }
+                }
+            }
+            $targetModel = $targetModel->get();
+        }else{
+            if(is_numeric($value)){
+                $targetModel = $targetModel->where($targetField, $value)->get();
+            }else{
+                if($targetModel->getConnection()->getDriverName() == 'mysql'){
+                    $targetModel = $targetModel->where($targetField, 'like', '%'.$value.'%')->get();
+                }else{
+                    $targetModel = $targetModel->where($targetField, 'ilike', '%'.$value.'%')->get();
+                }
+                    
+            }
+        }
+        if(count($path) == 4){
+            foreach($targetModel as $targetModelValue){
+                array_push($result, $targetModelValue->{$targetResult});
+            }
+        }
+        if(count($path) == 5){
+            foreach($targetModel as $targetModelValue){
+                foreach($targetModelValue->{$relation} as $data){
+                    array_push($result, $data->{$targetResult});
+                }
+            }
+        }
+        
+        return $model->whereIn($attribute, $result);
+        
+    }
+
+    public function resolveScope($model, $attribute, $query){
+        $path = explode(";", $query);
+        foreach ($path as $key => $value) {
+                $method = null;
+                $param = null;
+                if(count(explode(":", $value))>1){
+                    list($method, $param) = explode(":", $value);
+                }
+                try{
+                    if($param != null){
+                        $param = explode(",", $param);
+                        $model = $model->{$method}($param);
+                    }else{
+                        $model = $model->{$value}();
+                    }
+                }catch(\BadMethodCallException $e){
+                        throw new \BadMethodCallException;
+                }
+            }
+        return $model;
+    }
+    public function resolveSearchRelation($model, $attribute, $query){
+        $withTemp = explode("^", $attribute);
+        if(count($withTemp) > 1){
+            list($relation, $targetField) = $withTemp;
+            $model = $model->with($relation)->whereHas($relation, function($q) use($targetField, $query, $model){
+                if($model->getConnection()->getDriverName() == 'mysql'){
+                    $q->where($targetField, "like", "%".$attribute."%");
+                }else{
+                    $q->where($targetField, "ilike", "%".$attribute."%");
+                }
+            });
+        }
+        return $model;
+    }
+
+    public function resolveSearchMultiple($model, $attribute, $query){
+        $in = explode(",", $query);
+        return $model->whereIn($attribute, $in);
+    }
     /**
      * resolveWhere 
      * convert param query into eloquent comparison based on specified format
@@ -190,190 +364,36 @@ class RestEloquentRepository
     private function resolveWhere($model, $fields)
     {
         // check if there's any valid query param
-        if (count($fields)>0) {
+        if (count($fields) > 0) {
             // loop each fields
             foreach ($fields as $i => $l) {
                 // usecase more or less than (field=>value || field=<value)
-                if (substr($l, 0, 1) == ">" || substr($l, 0, 1) == "<") {
-                    if(substr($l, 0, 2) == ">=" || substr($l, 0, 2) == "<="){
-                       $model  = $model->where($i, substr($l, 0, 2), substr($l, 2));
-                    }else{
-                        $model = $model->where($i, substr($l, 0, 1), substr($l, 1));                        
-                    }
+                if ($this->resolveOperator($l) == ">" || $this->resolveOperator($l) == "<" || $this->resolveOperator($l) == "<=" || $this->resolveOperator($l) == ">=") {
+                    $model = $this->resolveComparison($model, $i, $l);
                 // usecase between  range (field=|min,max)
-                } elseif(substr($l, 0, 1) == "|"){
-                    $out = explode(",", substr($l, 1));
-                    $model = $model->whereBetween($i, $out);
+                } elseif($this->resolveOperator($l) == "|"){
+                    $model = $this->resolveBetween($model, $i, $l);
                 // usecase json path for searching json datatype (field={a,b,c=}value ==> field->a->b->c==value) // {a,b,c=} {a,b,c>} {a,b,c<} {a,b,c|}
-                } elseif(substr($l, 0, 1) == "{"){
-                    $out = explode("}", substr($l, 1));
-                    $identifier = substr($out[0], -1);
-                    $out[0] = substr($out[0], 0, -1);
-                    $path = explode(",", $out[0]);
-                    $key = "";
-                    if(count($path) > 0){
-                        $key = $i;
-                        foreach ($path as $k => $p) {
-                            $key = $key . "->" . $p; 
-                        }
-                    }else{
-                        $key = $i."->".$path;
-                    }
-                    
-                    if($identifier ==  "="){
-                        $model = $model->where($key, $out[1]);
-                    }else if($identifier ==  ">" || $identifier == "<"){
-                        $model = $model->where($key, $identifier, $out[1]);
-                    }else if($identifier == "|"){
-                        $range = explode(",", $out[1]);
-                        $model = $model->whereBetween($key, $range);
-                    }
+                } elseif($this->resolveOperator($l) == "{"){
+                    $model = $this->resolveJson($model, $i, $l);
                 // usecase not in (field=!value)
-                } elseif (substr($l, 0, 1) == "!") {
-                    $out = explode(",", substr($l, 1));
-                    $model = $model->whereNotIn($i, $out);
+                } elseif ($this->resolveOperator($l) == "!") {
+                    $model = $this->resolveNot($model, $i, $l);
                 // ilike operator (field=$value)
-                } elseif (substr($l, 0, 1) == "$") {
-                    $model = $model->where($i, 'ilike', "%".substr($l, 1)."%");
+                } elseif ($this->resolveOperator($l) == "$") {
+                    $model = $this->resolveLike($model, $i, $l);
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
-                } elseif (substr($l, 0, 1) == ";"){
-                    $path = explode(":", $l);
-                    if(count($path) < 4){
-                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');                        
-                    }
-                    try{
-                        $fieldToSearch = $path[1];
-                    }catch(\Exception $e){
-                        abort(500, 'You need to specify the field to search after the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
-                    }
-                    
-                    $modelPath = str_replace(";", "\\", $path[0]);
-                    $result = [];
-                    // variant one - get array of (something) from searching another model field=;App;User:field:value
-                    if(count($path) == 4){
-                        try{
-                            $value = $path[3];                        
-                        }catch(\Exception $e){
-                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
-                        }
-                        try{
-                            $fieldToReturn = $path[2];
-                        }catch(\Exception $e){
-                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
-                        }
-                        // return collection of model
-                        $checkIfMultipleValueInvolved = explode(',',$value);
-                        
-                        if(count($checkIfMultipleValueInvolved)>1){
-                            $modelToSearch = app($modelPath);
-                            foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
-                                if($idx == 0){
-                                    if(is_numeric($cimvi)){
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
-                                    }else{
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
-                                    }
-                                }else{
-                                    if(is_numeric($cimvi)){
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
-                                    }else{
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
-                                    }
-                                }
-                            }
-                            $modelToSearch = $modelToSearch->get();
-                        }else{
-                            if(is_numeric($value)){
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
-                            }else{
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'ilike', '%'.$value.'%')->get();
-                            }
-                        }
-                        
-                        foreach($modelToSearch as $mts){
-                            array_push($result, $mts->{$fieldToReturn});
-                        }
-                    }
-
-                    if(count($path) == 5){
-                        try{
-                            $value = $path[4];                        
-                        }catch(\Exception $e){
-                            abort(500, 'You need to specify the value after the field to search = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
-                        }
-                        try{
-                            $fieldToReturn = $path[2];
-                        }catch(\Exception $e){
-                            abort(500, 'You need to specify the fieldToReturn after the value = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$value || ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from field to find.');
-                        }
-                        // return collection of relation
-                        try{
-                            $relation = $path[3];
-                        }catch(\Exception $e){
-                            abort(500, 'You need to specify the relation if you want to search the relation of the model = ;Namespace;Model:$fieldToSearch:$fieldToReturn:$relation:$value. It will return the collection of field from the relation.');
-                        }
-                        $checkIfMultipleValueInvolved = explode(',',$value);
-                        if(count($checkIfMultipleValueInvolved)>1){
-                            $modelToSearch = app($modelPath);
-                            foreach($checkIfMultipleValueInvolved as $idx => $cimvi){
-                                if($idx == 0){
-                                    if(is_numeric($cimvi)){
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, $cimvi);                                     
-                                    }else{
-                                        $modelToSearch = $modelToSearch->where($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
-                                    }
-                                }else{
-                                    if(is_numeric($cimvi)){
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, $cimvi);                                     
-                                    }else{
-                                        $modelToSearch = $modelToSearch->orWhere($fieldToSearch, 'ilike', '%'.$cimvi.'%');                                        
-                                    }
-                                }
-                            }
-                            $modelToSearch = $modelToSearch->get();
-                        }else{
-                            if(is_numeric($value)){
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, $value)->get();
-                            }else{
-                                $modelToSearch = app($modelPath)->where($fieldToSearch, 'ilike', '%'.$value.'%')->get();
-                            }
-                            
-                        }
-                        foreach($modelToSearch as $motose){
-                            foreach($motose->{$relation} as $mts){
-                                array_push($result, $mts->{$fieldToReturn});
-                            }
-                        }
-                    }
-                    $model = $model->whereIn($i, $result);
+                } elseif ($this->resolveOperator($l) == ";"){
+                    $model = $this->resolveSearchOtherModel($model, $i, $l);
+                // usecase scope
                 } elseif ($i == "scope"){
-                    $path = explode(";", $l);
-                    foreach ($path as $key => $value) {
-                        $val = explode(":", $value);
-                        try{
-                            if(count($val)>1){
-                                $arr = explode(",", $val[1]);
-                                $model = $model->{$val[0]}($arr);
-                            }else{
-                                $model = $model->{$value}();
-                            }
-                        }catch(\BadMethodCallException $e){
-                        
-                        }
-                    }
-                // usecase where and whereIn (field = a,b,c)
-                } else {
-                    if(strpos($i, "^") !==  false){
-                        $withTemp = explode("^", $i);
-                        if(count($withTemp) > 1){
-                            $model = $model->with($withTemp[0])->whereHas($withTemp[0], function($q) use($withTemp, $l){
-                                $q->where($withTemp[1], "ilike", "%".$l."%");
-                            });
-                        }
-                    }else{
-                        $in = explode(",", $l);
-                        $model = $model->whereIn($i, $in);
-                    }
+                    $model = $this->resolveScope($model, $i, $l);
+                // usecase search relation 
+                } elseif(strpos($i, '^') !== false){
+                    $model = $this->resolveSearchRelation($model, $i, $l);
+                // usecase where in and where
+                }else{
+                    $model = $this->resolveSearchMultiple($model, $i, $l);
                 }
             }
         }
@@ -392,81 +412,59 @@ class RestEloquentRepository
         if (!is_null($orderBy)) {
             $orderBy = explode(",", $orderBy);
             foreach ($orderBy as $i => $o) {
-                if (substr($o, 0, 1) == "<") {
-                    $model = $model->orderBy(substr($o, 1), "desc");
+                if ($this->resolveOperator($o) == '<') {
+                    $model = $model->orderBy($this->resolveAttribute($o), "desc");
                 } else {
-                    $model = $model->orderBy(substr($o, 1), "asc");
+                    $model = $model->orderBy($this->resolveAttribute($o), "asc");
                 }
             }
         }
         return $model;
     }
 
-    private function resolveUpload($files, $input)
-    {
-        $string = [];
-        // process all the file type input
-        foreach ($files as $i => $file) {
-            $string = [];
-            if(is_null($file)){
-                if (is_array($file)) {
-                    // if the file that got sent are a form
-                    foreach ($file as $j => $item) {
-                        if(!is_string($item)){
-                            $temp = $item;
-                            $item = event(new FileHandlerEvent($item, $i, $input));
-                            if(is_array($item) && count($item) == 1){
-                                $item = $item[0];
-                            }else if(is_array($item) && count($item) == 0){
-                                $item = $temp;
-                            }
-                        }
-                        try{
-                            if(is_string($item)){
-                                array_push($string, $item);
-                            }else{
-                                array_push($string, asset('/storage/')."/".$item->store('images/'.$i, "public"));                        
-                            }
-                        }catch(FatalThrowableError $e){
-                            abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
-                        }
-                    }
-                } else {
-                    if(!is_string($file)){
-                        $temp = $file;
-                        $file = event(new FileHandlerEvent($file, $i, $input));
-                        if(is_array($file) && count($file) == 1){
-                            $file = $file[0];
-                        }else if(is_array($file) && count($file) == 0){
-                            $file = $temp;
-                        }
-                    }
-                    try{
-                        if(is_string($file)){
-                            array_push($string, $file);                        
-                        }else{
-                            array_push($string, asset('/storage/')."/".$file->store('images/'.$i, "public"));                    
-                        }
-                    }catch(FatalThrowableError $e){
-                        abort(422, 'There\'s something wrong with the image you send. Please check property '.$i);
-                    }
-                }
-                // check if theres any old images that need to be persist
-                if(array_key_exists('_old_'.$i, $input)){
-                    $old = $input['_old_'.$i];
-                    if(!is_array($old)){
-                        $old = [$old];
-                    }
-                    $string = array_merge($old, $string);
-                }
-                // insert images result into input
-                if (count($string)>1) {
-                    $input[$i] = $string;
-                } else {
-                    $input[$i] = $string[0];
-                }
-            }
+    private function resolveOperator($value){
+        if(substr($value, 0, 2) == ">=" || substr($value, 0, 2) == "<="){
+            return substr($value, 0, 2);
+        }else{
+            return substr($value, 0, 1);
         }
-        return $input;
+    }
+
+    private function resolve2Operator($value){
+        return substr($value, 0, 2);
+    }
+
+    private function resolveAttribute($value){
+        if($this->resolveOperator($value) == ">=" || $this->resolveOperator($value) == "<="){
+            return substr($value, 2);
+        }else{
+            return substr($value, 1);
+        }
+    }
+
+    private function resolveJsonOperator($value){
+        if(substr($value, -2) == "<=" || substr($value, -2) == ">="){
+            return substr($value, -2);
+        }
+        return substr($value, -1);
+    }
+
+    private function resolveJsonAttribute($value){
+        if($this->resolveJsonOperator($value) == "<=" || $this->resolveJsonOperator($value) == ">="){
+            return explode(',', substr($value, 0, -2));
+        }
+        return explode(',', substr($value, 0, -1));
+    }
+
+    private function buildJsonPath($attribute, $path){
+        if(count($path) > 0){
+            $key = $attribute;
+            foreach ($path as $k => $p) {
+                $key = $key . "->" . $p; 
+            }
+        }else{
+            $key = $attribute."->".$path;
+        }
+        return $key;
     }
 }

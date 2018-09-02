@@ -14,7 +14,8 @@ use ReflectionClass;
 
 trait RestControllerTrait
 {
-    protected function setModel($model){
+    protected function setModel($model)
+    {
         if (!$this->model instanceof Model && is_string($this->model)) {
             $class = new ReflectionClass($this->model);
             if (!$class->isAbstract()) {
@@ -25,52 +26,72 @@ trait RestControllerTrait
             }
         }
 
-        if($model instanceof Model){
-            $this->processor->setModel($this->model);            
+        if ($model instanceof Model) {
+            $this->processor->setModel($this->model);
         }
     }
 
     public function getCollection(Request $request)
     {
-        // return collection
-        return response()->successResponse($this->processor->getCollectionStandard($request));
+
+        return response()->successResponse(
+            $this->processor->getCollectionStandard(
+                $request, null, null, null, $this->res, $this->serializer, $this->meta));
     }
 
     public function getItem(Request $request, $id)
     {
         // return first id it found or not found http exception as a json
-        return response()->successResponse($this->processor->getItemStandard($request, $id));
+        return response()->successResponse(
+            $this->processor->getItemStandard(
+                $request, $id, null, null, null, $this->cursor, $this->serializer, $this->meta));
     }
 
-    public function postItem(Request $request, $validate)
+    public function postItem(Request $request, $validate = true)
     {
         // validate the request first, rules fetched from model get rules method
-        if($validate){
-            try {
-                $request = RestRequestFactory::createRequest($this->model, "store");
-            } catch (ValidationException $e) {
-                return response()->exceptionResponse($e);
-            }
-        }
+        $request = $this->parseValidate($validate, "store");
         // return newly created item
-        return response()->createdResponse($this->processor->postItemStandard($request));
+        if ($request instanceof \Illuminate\Http\JsonResponse) {
+            return $request;
+        }
+        return response()->createdResponse(
+            $this->processor->postItemStandard(
+                $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
     }
-    public function putItem($id, Request $request, $validate)
+    public function putItem($id, Request $request, $validate = true)
     {
-        if($validate){
+        $request = $this->parseValidate($validate, "update");
+        return response()->successResponse(
+            $this->processor->putItemStandard(
+                $id, $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
+    }
+
+    public function deleteItem($id, Request $request, $validate = true)
+    {
+        $request = $this->parseValidate($validate, "delete");
+        return response()->noContentResponse(
+            $this->processor->deleteItemStandard($id, $request, null, null));
+    }
+
+    public function postCollection(Request $request, $validate = true)
+    {
+        $request = $this->parseValidate($validate, "store");
+        return response()->createdResponse(
+            $this->processor->postItemCollection(
+                $request, null, null, null, $this->cursor, $this->serializer, $this->meta));
+    }
+
+    protected function parseValidate($validate = true, $type = "store")
+    {
+        if ($validate) {
             try {
-                $request = RestRequestFactory::createRequest($this->model, "update");
+                $request = RestRequestFactory::createRequest($this->model, $type);
             } catch (ValidationException $e) {
                 return response()->exceptionResponse($e);
             }
+            return $request;
         }
-
-        return response()->successResponse($this->processor->putItemStandard($id, $request));
+        return $request;
     }
-
-    public function deleteItem($id, Request $request)
-    {
-        return response()->noContentResponse($this->processor->deleteItemStandard($id, $request));
-    }
-    
 }
