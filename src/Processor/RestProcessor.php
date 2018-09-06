@@ -433,7 +433,6 @@ class RestProcessor
                 return $data;
             });
         }
-
         if(!is_null($meta)){
             if(is_object($meta)){
                 $meta = (array) $meta;
@@ -441,7 +440,11 @@ class RestProcessor
             $resource->setMeta($meta);
         }
         $results = $this->manager->createData($resource)->toArray();
-
+        if(is_array($results['data'])){
+            if(count($results['data']) == 0){
+                $results['data'] = null;
+            }
+        }
         if(!is_null($post)){
             $results = $post($results);
         }
