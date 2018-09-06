@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\Resource\Primitive;
+use League\Fractal\Resource\NullResource;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Ordent\RamenRest\Transformer\RestTransformer;
 // use League\Fractal\Manager;
@@ -425,6 +426,8 @@ class RestProcessor
             }
         }else if($result instanceof Model){
             $resource = new Item($result, $this->resolveTransformer($transformer));
+        }else if(is_null($result)){
+            $resource = new NullResource();
         }else{
             $resource = new Item($result, function($data){
                 return $data;
