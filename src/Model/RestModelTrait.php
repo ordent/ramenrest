@@ -87,7 +87,7 @@ trait RestModelTrait{
         }else if(config('filesystems.default') == 'public'){
             return asset('/storage/'.$data);
         }else{
-            return $data;
+            return \Storage::url($data);
         }
     }
 }
