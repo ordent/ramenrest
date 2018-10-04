@@ -30,21 +30,21 @@ class FileProcessor
     public function getRealPath($path, $disks)
     {
         if ($disks == 'public') {
-            return storage_path() . '/app/public' . $path;
+            return storage_path() . '/app/public/' . $path;
         } else if ($disks == 'local') {
-            return storage_path() . '/app' . $path;
+            return storage_path() . '/app/' . $path;
         } else {
             return \Storage::url($path);
         }
     }
 
-    public function getFileName($filePath)
+    public function getFileName($path)
     {
-        $temp = explode($filePath, '/');
+        $temp = explode('/', $path);
         return $temp[count($temp) - 1];
     }
 
-    public function storeFile(UploadedFile $file, $path = '/uploads', $disks = 'public')
+    public function storeFile(UploadedFile $file, $path = '/uploads', $disks = 'public', $complex = false)
     {
         $completePath = $this->getRealPath($this->resolvePath($path), $disks);
         if ($disks == 'public' || $disks == 'local') {
@@ -58,27 +58,27 @@ class FileProcessor
         return $result;
     }
 
-    public function uploadFile(UploadedFile $file, $path, $meta = null, $disks = 'public')
+    public function uploadFile(UploadedFile $file, $path, $meta = null, $disks = 'public', $complex = false)
     {
         $extension = $file->clientExtension();
         if ($extension == 'png' || $extension == 'jpeg') {
-            return $this->uploadImageFile($file, $path, $meta, $disks);
+            return $this->uploadImageFile($file, $path, $meta, $disks, $complex);
         }
-        return $this->uploadNormalFile($file, $path, $disks);
+        return $this->uploadNormalFile($file, $path, $disks, $complex);
     }
 
-    public function uploadNormalFile(UploadedFile $file, $path = '/files', $disks = 'public')
+    public function uploadNormalFile(UploadedFile $file, $path = '/files', $disks = 'public', $complex = false)
     {
-        return $this->storeFile($file, $path, $disks);
+        return $this->storeFile($file, $path, $disks, $complex);
     }
 
-    public function uploadImageFile(UploadedFile $file, $path = '/images', $meta = null, $disks = 'public')
+    public function uploadImageFile(UploadedFile $file, $path = '/images', $meta = null, $disks = 'public', $complex = false)
     {
-        $data = $this->storeFile($file, $path, $disks);
+        $data = $this->storeFile($file, $path, $disks, $complex);
         $filename = $this->getFileName($data);
         if (!is_null($meta)) {
             if (array_get($meta, 'modification.status') == true) {
-                $image = Image::make($this->getRealPath($path, $disks));
+                $image = Image::make($this->getRealPath($data, $disks));
                 $width = array_get($meta, 'modification.width', null);
                 $height = array_get($meta, 'modification.height', null);
                 $type = array_get($meta, 'modification.type', 'fit');
@@ -100,9 +100,23 @@ class FileProcessor
                 } else if ($disks == 'local') {
                     $image->save($this->getRealPath($data, $disks));
                 } else {
-                    \Storage::put($this->getRealPath($data, $disks), $image->stream());
+                    \Storage::put($data, $image->stream());
                 }
             }
+        }
+        if($complex){
+            $image = Image::make(\Storage::get($data));
+            $preloading = $image->fit(20)->encode('data-url')->encoded;
+
+            $thumbnail = \Storage::put($path.'/thumb_'.$filename, $image->fit(300)->stream());
+
+            $thumbnail = $path.'/thumb_'.$filename;
+            $filename = $data;
+            $data = new \StdClass;
+            $data->original = $filename;
+            $data->thumbnail = $thumbnail;
+            $data->preloading = $preloading;
+            $data = json_encode($data);
         }
         // $result = $this->getRealPath($data, $disks);
         return $data;
