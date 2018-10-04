@@ -54,7 +54,7 @@ trait RestModelTrait{
         return $results;
     }
 
-    public function uploadFile($data, $attribute, $key = null, $path = null, $disks = null, $meta = null){
+    public function uploadFile($data, $attribute, $key = null, $path = null, $disks = null, $meta = null, $complex = false){
         if(is_null($key)){
             $attribute_key = $attribute;
         }else{
@@ -74,11 +74,32 @@ trait RestModelTrait{
             $meta['path'] = $path;
         }
         $fileProcessor = app('FileProcessor');
-        
-        return $fileProcessor->uploadFile($data, $meta['path'], $meta, $disks);
+        if($complex){
+            $meta['extension'] = $data->getClientOriginalExtension();
+            $meta['size'] = $data->getClientSize();
+        }
+        return $fileProcessor->uploadFile($data, $meta['path'], $meta, $disks, $complex);
     }
 
-    protected function getFile($data){
+    protected function getFile($data, $complex = false){
+        if($complex && !is_null($data)){
+            try{
+                $data = json_decode($data);
+            }catch(\Exception $e){
+                
+            }
+
+            $data->original = $this->parseFile($data->original);
+            // dd($data->thumbnail, $this->parseFile($data->thumbnail));
+            $data->thumbnail = $this->parseFile($data->thumbnail);
+            
+            return $data;
+        }else{
+            return $this->parseFile($data);
+        }
+    }
+
+    protected function parseFile($data){
         if(strpos($data, 'http') !== false){
             return $data;
         }

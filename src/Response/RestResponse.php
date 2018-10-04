@@ -87,6 +87,11 @@ class RestResponse
         if (is_null($message) || $message == "") {
             return $default;
         }
+        try{
+            $message = json_decode($message);
+        }catch(\Exception $e){
+
+        }
         return $message;
     }
     // exception response
