@@ -84,15 +84,21 @@ class RestResponse
 
     public function resolveMessage($message, $default = "Default error exception")
     {
+
         if (is_null($message) || $message == "") {
             return $default;
         }
-        try{
-            $message = json_decode($message);
-        }catch(\Exception $e){
 
+        try{
+            $result = json_decode($message);
+            if(is_null($result)){
+                $result = $message;
+            }
+        }catch(\Exception $e){
+            $result = $message;
         }
-        return $message;
+
+        return $result;
     }
     // exception response
 
