@@ -1,5 +1,4 @@
 <?php
-
 namespace Ordent\RamenRest\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -18,9 +17,18 @@ use Ordent\RamenRest\Transformer\RestTransformer;
 use League\Fractal\Manager;
 use League\Fractal\Serializer\DataArraySerializer;
 
-class RestController extends Controller
+/**
+ * RamenRestController class
+ * 
+ * Basic extendable object for Rest Controller it shall be used as your template for creating REST controllers.
+ * @copyright 2018 Orde Digital Intelektual (ORDENT)
+ * @author Dimas Satrio <dimassrio@gmail.com>
+ * @package Ordent\RamenRest\Controllers
+ */
+class RamenRestController extends Controller
 {
-    use RestControllerTrait;
+    use RamenRestControllerTrait;
+    
     protected $routes = [];
     protected $model = "\Illuminate\Database\Eloquent\Model";
     protected $uri = "/";
@@ -29,16 +37,22 @@ class RestController extends Controller
     protected $serializer = null;
     protected $meta = [];
     protected $cursor = false;
-    public function __construct(RestProcessor $processor, Model $model = null)
+
+    /**
+     * _construct function
+     * Setting up REST controller with a REST proccessor and Model
+     * @param Ordent\RamenRest\Processor\RestProcessor $processor
+     * @param Illuminate\Database\Eloquent\Model $model
+     */
+    public function __construct(RestProcessor $processor = null, Model $model = null)
     {
-        // Inject Response
         // Inject Processor
-        $this->processor = $processor;
-        // Inject model
-        if (!is_null($model)) {
-            $this->setModel($model);
-        } else {
-            $this->setModel($this->model);
+        if(!is_null($processor)){
+            $this->processor = $processor;
+        }else{
+            $this->processor = new RestProcessor;
         }
+        // Setup model via injected constructor or basic REST / laravel model.
+        $this->ramenSetModel($model);
     }
 }
