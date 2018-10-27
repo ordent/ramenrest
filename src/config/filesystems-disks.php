@@ -1,4 +1,5 @@
 <?php
+// this configuration is needed in order to prepare gcs based file storage.
 return array_merge(config('filesystems.disks'), ['gcs' => [
     'driver' => 'gcs',
     'project_id' => env('GOOGLE_CLOUD_PROJECT_ID', null),
