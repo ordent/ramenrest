@@ -48,7 +48,11 @@ trait RamenRestControllerTrait
                 }
             }
         }
-        // ask the processor to do it in the end.
+
+        // assign model object to controller instance here
+        $this->model = $model;
+        
+        // assign model object to processor instance here
         $this->processor->setModel($model);
     }
     /**
