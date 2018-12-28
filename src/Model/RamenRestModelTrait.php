@@ -113,11 +113,11 @@ trait RamenRestModelTrait{
      * @return void
      */
     public function ramenUploadFile($data, $attribute, $path = null, $disks = null, $meta = null, $complex = false){
-        $meta = $this->ramenMetaFilesGenerator($meta);
+        $meta = $this->ramenMetaFilesGenerator($meta, $path, $complex, $attribute);
         
         $fileProcessor = app('FileProcessor');
         
-        return $fileProcessor->uploadFile($data, $meta, $meta, $disks, $complex);
+        return $fileProcessor->uploadFile($data, $path, $meta, $disks, $complex);
     }
 
     /**
@@ -128,7 +128,7 @@ trait RamenRestModelTrait{
      * @param mixed $complex
      * @return array
      */
-    protected function ramenMetaFilesGenerator($meta, $path, $complex){
+    protected function ramenMetaFilesGenerator($meta, $path, $complex, $attribute){
         if($meta == null){
             $meta = [];
         }
