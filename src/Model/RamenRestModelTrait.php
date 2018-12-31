@@ -62,6 +62,7 @@ trait RamenRestModelTrait{
      * path to store the file
      * @param string $disks
      * type of uploading (public, gcp, aws)
+     * in order to use s3 as a disk, you must add following dependency to your project. 'composer require league/flysystem-aws-s3-v3'
      * @param array $meta
      * if you want to add any meta into the response
      * @param bool $complex
@@ -102,6 +103,7 @@ trait RamenRestModelTrait{
      * ramenUploadFile function
      * 
      * main function to uploading to the system, exposed so people can access it directly rather than using standard resolver
+     * in order to use s3 as a disk, you must add following dependency to your project. 'composer require league/flysystem-aws-s3-v3'
      *
      * @param mixed $data
      * @param mixed $attribute
