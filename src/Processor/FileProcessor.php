@@ -76,6 +76,8 @@ class FileProcessor
     {
         $data = $this->storeFile($file, $path, $disks, $complex);
         $filename = $this->getFileName($data);
+		$complexWidth = 300;
+		$complexHeight = 300;
         if (!is_null($meta)) {
             if (array_get($meta, 'modification.status') == true) {
                 $image = Image::make($this->getRealPath($data, $disks));
@@ -103,13 +105,18 @@ class FileProcessor
                     \Storage::put($data, $image->stream());
                 }
             }
+
+			if (array_get($meta, 'modification.complex.status') == true) {
+				$complexWidth = array_get($meta, 'modification.complexWidth', null);
+				$complexWidth = array_get($meta, 'modification.complexHeight', null);
+			}
         }
         if($complex){
             $image = Image::make(\Storage::get($data));
+			$image->backup();
             $preloading = $image->fit(20)->encode('data-url')->encoded;
-
-            $thumbnail = \Storage::put($path.'/thumb_'.$filename, $image->fit(300)->stream());
-
+			$image->reset();
+            $thumbnail = \Storage::put($path.'/thumb_'.$filename, $image->fit($complexWidth, $complexHeight)->stream());
             $thumbnail = $path.'/thumb_'.$filename;
             $filename = $data;
             $data = new \StdClass;
