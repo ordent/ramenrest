@@ -379,7 +379,7 @@ class RestEloquentRepository
                 // usecase not in (field=!value)
                 } elseif ($this->resolveOperator($l) == "!") {
                     $model = $this->resolveNot($model, $i, $l);
-                // ilike operator (field=$value)
+                // like operator (field=$value)
                 } elseif ($this->resolveOperator($l) == "$") {
                     $model = $this->resolveLike($model, $i, $l);
                 // get relation with path (field=App;User:rel:value) == field = [App\\User->rel]
