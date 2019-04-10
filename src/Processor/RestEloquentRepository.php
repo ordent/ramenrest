@@ -123,10 +123,10 @@ class RestEloquentRepository
                                 if(is_numeric($search)){
                                     $model = $model->orWhere($columns['data'], $search);
                                 }else{
-                                    if($model->getConnection()->getDriverName() == 'mysql'){
-                                        $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
-                                    }else{
+                                    if($model->getConnection()->getDriverName() == 'pgsql'){
                                         $model = $model->orWhere($columns['data'], 'ilike', '%'.$search.'%');
+                                    }else{
+                                        $model = $model->orWhere($columns['data'], 'like', '%'.$search.'%');
                                     }
                                 }
                         }
@@ -141,10 +141,10 @@ class RestEloquentRepository
                             $relColType = \DB::connection()->getDoctrineColumn($model->getRelation($rel)->getRelated()->getTable(), $relCol)->getType()->getName();
                             if($relColType == 'string'){
                                 $model = $model->with($rel)->orWhereHas($rel, function($q) use($relCol, $search, $model) {
-                                    if($model->getConnection()->getDriverName() == 'mysql'){
-                                        $q->where($relCol, 'like', '%'.$search.'%');                                        
+                                    if($model->getConnection()->getDriverName() == 'pgsql'){
+                                        $q->where($relCol, 'ilike', '%'.$search.'%');                                        
                                     }else{
-                                        $q->where($relCol, 'ilike', '%'.$search.'%');
+                                        $q->where($relCol, 'like', '%'.$search.'%');
                                     }
                                 });
                             }
@@ -197,10 +197,10 @@ class RestEloquentRepository
     private function resolveLike($model, $attribute, $query){
         $relColType = \DB::connection()->getDoctrineColumn($model->getTable(), $attribute)->getType()->getName();
         if($relColType != 'datetime'){
-            if($model->getConnection()->getDriverName() == 'mysql'){
-                return $model->where($attribute, 'like', "%".substr($query, 1)."%");
-            }else{
+            if($model->getConnection()->getDriverName() == 'pgsql'){
                 return $model->where($attribute, 'ilike', "%".substr($query, 1)."%");
+            }else{
+                return $model->where($attribute, 'like', "%".substr($query, 1)."%");
             }
         }else{
             $temp = explode('-', substr($query, 1));
@@ -264,10 +264,10 @@ class RestEloquentRepository
                     if(is_numeric($val)){
                         $targetModel = $targetModel->where($targetField, $val);                                     
                     }else{
-                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
-                            $targetModel = $targetModel->where($targetField, 'like', '%'.$val.'%');
-                        }else{
+                        if($targetModel->getConnection()->getDriverName() == 'pgsql'){
                             $targetModel = $targetModel->where($targetField, 'ilike', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->where($targetField, 'like', '%'.$val.'%');
                         }
                         
                     }
@@ -275,10 +275,10 @@ class RestEloquentRepository
                     if(is_numeric($val)){
                         $targetModel = $targetModel->orWhere($targetField, $val);                                     
                     }else{
-                        if($targetModel->getConnection()->getDriverName() == 'mysql'){
-                            $targetModel = $targetModel->orWhere($targetField, 'like', '%'.$val.'%');
-                        }else{
+                        if($targetModel->getConnection()->getDriverName() == 'pgsql'){
                             $targetModel = $targetModel->orWhere($targetField, 'ilike', '%'.$val.'%');
+                        }else{
+                            $targetModel = $targetModel->orWhere($targetField, 'like', '%'.$val.'%');
                         }
                     }
                 }
@@ -288,10 +288,10 @@ class RestEloquentRepository
             if(is_numeric($value)){
                 $targetModel = $targetModel->where($targetField, $value)->get();
             }else{
-                if($targetModel->getConnection()->getDriverName() == 'mysql'){
-                    $targetModel = $targetModel->where($targetField, 'like', '%'.$value.'%')->get();
-                }else{
+                if($targetModel->getConnection()->getDriverName() == 'pgsql'){
                     $targetModel = $targetModel->where($targetField, 'ilike', '%'.$value.'%')->get();
+                }else{
+                    $targetModel = $targetModel->where($targetField, 'like', '%'.$value.'%')->get();
                 }
                     
             }
@@ -339,10 +339,10 @@ class RestEloquentRepository
         if(count($withTemp) > 1){
             list($relation, $targetField) = $withTemp;
             $model = $model->with($relation)->whereHas($relation, function($q) use($targetField, $query, $model){
-                if($model->getConnection()->getDriverName() == 'mysql'){
-                    $q->where($targetField, "like", "%".$attribute."%");
-                }else{
+                if($model->getConnection()->getDriverName() == 'pgsql'){
                     $q->where($targetField, "ilike", "%".$attribute."%");
+                }else{
+                    $q->where($targetField, "like", "%".$attribute."%");
                 }
             });
         }
