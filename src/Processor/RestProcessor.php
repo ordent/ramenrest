@@ -238,10 +238,11 @@ class RestProcessor
             $model = $post($model);
         }
         if ($cursor) {
+            $key = $model->getKeyName();
             $previous = null;
             $next = null;
-            $previous = $model->where('id', '<', $model->id)->orderBy('id', 'desc')->first();
-            $next = $model->where('id', '>', $model->id)->orderBy('id', 'asc')->first();
+            $previous = $model->where($key, '<', $model->$key)->orderBy($key, 'desc')->first();
+            $next = $model->where($key, '>', $model->$key)->orderBy($key, 'asc')->first();
             $status_code = 200;
             $defaultMeta = array_merge($defaultMeta, ['previous'=>$previous, 'next' => $next]);
         }

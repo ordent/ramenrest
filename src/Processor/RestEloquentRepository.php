@@ -106,6 +106,7 @@ class RestEloquentRepository
         if(array_key_exists('with', $attributes)){
             array_push($relation, $attributes['with']);
         }
+        $key = $model->getKeyName();
         $model = $this->resolveWhere($model, $parsed);
        
         if(array_key_exists('search', $attributes)){
@@ -116,7 +117,7 @@ class RestEloquentRepository
                 //$search['value'];
                 $count = [];
                 // hacks to clearing where chaining from before
-                $model = $model->where('id', -1);
+                $model = $model->where($key, -1);
                 foreach($attributes['columns'] as $index => $columns){
                     if(filter_var($columns['searchable'], FILTER_VALIDATE_BOOLEAN) && !is_null($columns['data'])){
                         if(!strpos($columns['data'], $search)){
