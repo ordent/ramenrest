@@ -341,9 +341,9 @@ class RestEloquentRepository
             list($relation, $targetField) = $withTemp;
             $model = $model->with($relation)->whereHas($relation, function($q) use($targetField, $query, $model){
                 if($model->getConnection()->getDriverName() == 'pgsql'){
-                    $q->where($targetField, "ilike", "%".$attribute."%");
+                    $q->where($targetField, "ilike", "%".$query."%");
                 }else{
-                    $q->where($targetField, "like", "%".$attribute."%");
+                    $q->where($targetField, "like", "%".$query."%");
                 }
             });
         }
